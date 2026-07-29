@@ -1,0 +1,47 @@
+body, html {
+    width: 100%;
+    height: 100%;
+    background-color: black;
+}
+
+* {
+    color: #fff;
+    margin: 0;
+}
+
+.entry {
+    padding: 5px;
+    font-size: 20px;
+    font-family: monospace;
+    border-bottom: 5px solid #fff;
+
+    &:focus {
+        outline: none;
+    }
+}
+
+#maincontainer {
+    display: flex;
+    height: 100%;
+    flex-direction: row;
+    fill-rule: nonzero;
+}
+
+#funccontainer {
+    width: 30%;
+    border: 1px solid #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+#entrylist {
+    width: 100%;
+    overflow: scroll;
+    display: flex;
+    flex-direction: column;
+}
+
+#graphcontainer {
+    flex-grow: 1;
+    border: 1px solid #fae;
+}
