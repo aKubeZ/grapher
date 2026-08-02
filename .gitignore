@@ -1,1 +1,5 @@
 js/**
+./.gitignore
+./.gitmodules
+./.package-lock.json
+./.package.json
