@@ -1,15 +1,16 @@
 import { EntryList } from "./entrylist.js";
+import { MathInput } from "./mathjaxconfig/mathinput.js";
 
 export class Entry {
-    static #entries: Entry[] = [];
-    static getEntry(element: HTMLElement) {
+    private static entries: Entry[] = [];
+    public static getEntry(element: HTMLElement): Entry | undefined {
         if (element.nodeName !== "DIV") return undefined;
-        for (const entry of Entry.#entries)
-            if (entry.#element == element) return entry;
+        for (const entry of Entry.entries)
+            if (entry.element == element) return entry;
         return undefined;
     }
 
-    static #focusElement(element: HTMLElement) {
+    private static focusElement(element: HTMLElement): undefined {
         const range = document.createRange();
         const selection = window.getSelection();
         range.setStart(element, 0);
@@ -18,53 +19,76 @@ export class Entry {
         selection?.addRange(range);
     }
 
-    #element: HTMLDivElement;
-    #entryList: EntryList | undefined;
+    private element: HTMLDivElement;
+    private entryList: EntryList | undefined;
     constructor(element: HTMLElement, entryList: EntryList | undefined) {
         if (!element) throw new Error("Entry not found");
         if (element.nodeName !== "DIV") throw new Error("Entry element not div");
         
-        this.#element = <HTMLDivElement> element;
-        this.#entryList = entryList;
-        this.#initEntry();
-        Entry.#entries.push(this);
+        this.element = <HTMLDivElement> element;
+        this.entryList = entryList;
+
+        this.initEntry();
+        Entry.entries.push(this);
     }
 
-    #initEntry() {
-        this.#element.classList.add("entry");
-        this.#element.contentEditable = "plaintext-only";
-        // create new entry on enter
-        if (!this.#entryList) throw new Error("Entry not yet defined");
-        this.#element.addEventListener('keydown', (event) => {
-            switch (event.key) {
-                case "Enter": {
-                    event.preventDefault();
-                    const newEntry = (<EntryList> this.#entryList).createEntryAfter(this);
-                    newEntry.focus();
-                } break;
-                case "ArrowUp": {
-                    const prevEntryElement = <HTMLElement> this.#element.previousElementSibling;
-                    if (prevEntryElement) {
-                        Entry.#focusElement(prevEntryElement);
-                        event.preventDefault();
-                    }
-                } break;
-                case "ArrowDown": {
-                    const nextEntryElement = <HTMLElement> this.#element.nextElementSibling;
-                    if (nextEntryElement) {
-                        Entry.#focusElement(nextEntryElement);
-                        event.preventDefault();
-                    }
-                } break;
-            }
-        });
+    private initEntry(): undefined {
+        this.element.classList.add("entry");
+        // this.element.contentEditable = "plaintext-only";
+        // if (!this.entryList) throw new Error("Entry not yet defined");
+        // this.element.addEventListener('keydown', (event) => {
+        //     switch (event.key) {
+        //         case "Enter": { // new entry
+        //             event.preventDefault();
+        //             const newEntry = (<EntryList> this.entryList).createEntryAfter(this);
+        //             newEntry.focus();
+        //         } break;
+        //         case "ArrowUp": { // move up an entry
+        //             const prevEntryElement = <HTMLElement> this.element.previousElementSibling;
+        //             if (prevEntryElement) {
+        //                 Entry.focusElement(prevEntryElement);
+        //                 event.preventDefault();
+        //             }
+        //         } break;
+        //         case "ArrowDown": { // move down an entry
+        //             const nextEntryElement = <HTMLElement> this.element.nextElementSibling;
+        //             if (nextEntryElement) {
+        //                 Entry.focusElement(nextEntryElement);
+        //                 event.preventDefault();
+        //             }
+        //         } break;
+        //         case "Backspace": { // delete this entry
+        //             if (window.getSelection()?.getRangeAt(0).startOffset !== 0) return; // if cursor is at start of entry
+        //             // console.log(window.getSelection()?.getRangeAt(0))
+        //             const prevEntryElement = <HTMLElement> this.element.previousElementSibling;
+        //             if (!prevEntryElement) {
+        //                 const nextEntryElement = <HTMLElement> this.element.nextElementSibling;
+        //                 if (!nextEntryElement) return;
+        //                 Entry.focusElement(nextEntryElement);
+        //                 this.delete();
+        //                 return;
+        //             }
+
+        //             Entry.focusElement(prevEntryElement);
+        //             this.delete();
+        //             event.preventDefault();
+        //         }
+        //     }
+        // });
+        MathInput.mathInput(this.element);
+    }
+
+    delete(): undefined {
+        this.element.remove();
+        const index = Entry.entries.indexOf(this);
+        if (index > -1) Entry.entries.splice(index, 1);
     }
 
     /**
      * Puts the cursor inside the entry
      */
-    focus() { Entry.#focusElement(this.#element) }
-    setEntryList(entryList: EntryList) { this.#entryList = entryList; }
-    getElement() { return this.#element; }
-    getText() { return this.#element.textContent; }
+    focus(): undefined { Entry.focusElement(this.element) }
+    setEntryList(entryList: EntryList): undefined { this.entryList = entryList; }
+    getElement(): HTMLDivElement { return this.element; }
+    getText(): string { return this.element.textContent; }
 }

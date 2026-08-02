@@ -1,7 +1,7 @@
 {
     const head: HTMLHeadElement | undefined = document.getElementsByTagName("head")[0];
     const prefix: string = "./js/";
-    function loadScript(...urls: string[]) {
+    function loadScript(...urls: string[]): undefined {
         if (!head) return;
         urls.forEach((url) => {
             url = prefix + url;
@@ -15,6 +15,9 @@
 
     loadScript(
         "main.js",
-        "entry.js"
-    );
+        "entry.js",
+        "entrylist.js",
+        "mathjax/mathwriter.js",
+        "mathjax/mathjax.js"
+    )
 }

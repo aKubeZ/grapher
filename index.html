@@ -10,19 +10,39 @@
         <div id="maincontainer">
             <div id="funccontainer">
                 <div id="entrylist">
-                    <div class="entry" contenteditable></div>
-                    <div class="entry" contenteditable></div>
+                    <!-- <div class="entry">$$e^x$$</div>
+                    <div class="entry"></div> -->
                 </div>
             </div>
             <div id="graphcontainer">
-                <canvas>
-
-                </canvas>
+                <canvas id="graph"></canvas>
             </div>
         </div>
 
-        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
-        <!-- <script src="main.js"></script> -->
-        <script src="./js/loader.js" type="module"></script>
+        <!-- mathjax -->
+        <script defer src="./js/loader.js" type="module"></script>
+        <script>
+            MathJax = {
+                loader: {
+                    load: ['output/svg']
+                },
+                svg: {
+                    displayAlign: "left",
+                },
+                options: {
+                    enableMenu: false,
+                    menuOptions: {
+                        settings: {
+                            enrich: false,         // true to enable semantic-enrichment
+                            collapsible: false,   // true to enable collapsible math
+                            speech: false,         // true to enable speech generation
+                            braille: false,        // true to enable Braille generation
+                            assistiveMml: false,  // true to enable assistive MathML
+                        }
+                    }
+                }
+            };
+        </script>
+        <script defer id="MathJax-script" src="./lib/mathjax/tex-chtml.js"></script>
     </body>
 </html>
