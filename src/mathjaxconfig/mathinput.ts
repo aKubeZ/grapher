@@ -268,12 +268,13 @@ export class MathInput {
     
     private element: HTMLElement;
     private cursorIndex: number;
-    // private focused: boolean = false;
+    private cursorRange: number;
     private renderingLatex: string = "";
 
     public constructor(element: HTMLElement) {
         this.element = element;
         this.cursorIndex = 0;
+        this.cursorRange = 0;
         this.initElement();
         this.updateString(true);
     }
@@ -305,7 +306,6 @@ export class MathInput {
                 } break;
                 case "Space":
                 case " ": {
-                    console.log("space");
                     this.cursorIndex = this.math.insertToken(this.cursorIndex, "\\ ");
                     this.updateString();
                 } break;
@@ -358,8 +358,16 @@ export class MathInput {
         // const cursorPos = 0;
         const cursorPos = this.math.stringIndex(this.cursorIndex);
 
+
         let mathString = this.math.toString();
-        mathString = mathString.slice(0, cursorPos) + (!unfocus ? "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" : "") + mathString.slice(cursorPos);
+        if (this.cursorRange === 0)
+            mathString = mathString.slice(0, cursorPos) + (!unfocus ? "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" : "") + mathString.slice(cursorPos);
+        else {
+            const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
+            mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
+        }
+
+        // mathString = String.raw`six\bbox[blue, 1pt]{seven}`;
         mathString = `\\[${mathString}\\]`;
 
         if (mathString !== this.renderingLatex) {
