@@ -22,8 +22,9 @@
         <!-- mathjax -->
         <script>
             MathJax = {
+                tex: {packages: {'[+]': ['bbox']}},
                 loader: {
-                    load: ['output/svg']
+                    load: ['output/svg', '[tex]/bbox']
                 },
                 svg: {
                     displayAlign: "left",
