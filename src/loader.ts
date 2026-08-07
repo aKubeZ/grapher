@@ -17,7 +17,7 @@
         "main.js",
         "entry.js",
         "entrylist.js",
-        "mathjax/mathwriter.js",
-        "mathjax/mathjax.js"
+        "mathjaxconfig/mathinput.js",
+        "mathjaxconfig/mathjax.js"
     )
 }

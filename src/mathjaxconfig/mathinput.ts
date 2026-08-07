@@ -7,18 +7,54 @@ type MathToken = {
 };
 
 type MathTextData = MathToken[];
+type Shorthand = { shorthand: MathText, value: MathText };
 
 class MathText {
     private mathText: MathTextData;
     private mathString: string | undefined;
     private mathSize: number | undefined;
+    private shorthands: Shorthand[] = [];
+
     constructor(mathText: MathTextData) {
         this.mathText = mathText;
+    }
+
+    /**
+     * note that this does not compare brackets
+     */
+    private equals(other: MathText): boolean {
+        if (this.mathText.length !== other.mathText.length) return false;
+        for (let i = 0; i < this.mathText.length; i++) {
+            const thisToken = <MathToken> this.mathText[i];
+            const otherToken = <MathToken> other.mathText[i];
+            if (thisToken.name !== otherToken.name) return false;
+            if (thisToken.args.length !== otherToken.args.length) return false;
+            for (let j = 0; j < thisToken.args.length; j++) {
+                const thisArgument = <MathText> thisToken.args[j];
+                const otherArgument = <MathText> otherToken.args[j];
+                if (!thisArgument.equals(otherArgument)) return false;
+            }
+        }
+
+        return true;
     }
 
     private reset(): void {
         this.mathString = undefined;
         this.mathSize = undefined;
+    }
+
+    /**
+     * sets the shorthands ofc ofc
+     * and also inherits it to the children
+     */
+    public setShorthands(shorthands: Shorthand[]): void {
+        this.shorthands = shorthands;
+        for (const token of this.mathText) {
+            for (const argument of token.args) {
+                argument.setShorthands(shorthands);
+            }
+        }
     }
 
     /**
@@ -147,8 +183,67 @@ class MathText {
     }
 
     /**
+     * converts like s,q,r,t -> sqrt
+     * note that this inputs the newIndex
+     */
+    public convertShorthands(index: number): number {
+        if (index === 0) return index;
+        
+        let indexCount = 0;
+        let tokenIndex = 0;
+        for (let i = 0; i < this.mathText.length; i++) {
+            const token = <MathToken> this.mathText[i];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === index) {
+                tokenIndex = i;
+                break;
+            }
+
+            let argumentStartIndex = indexCount + 0;
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (indexCount + argument.getSize() > index)
+                    return indexCount + argument.convertShorthands(index - indexCount);
+
+                indexCount += argument.getSize();
+                argumentStartIndex += argument.getSize();
+            }
+
+            if (indexCount === index) {
+                tokenIndex = i;
+                break;
+            }
+        }
+
+        console.log(tokenIndex);
+
+        if (tokenIndex === 0) return index;
+        tokenIndex++;
+
+        for (let i = 0; i < this.shorthands.length; i++) {
+            const shorthand = <MathText> this.shorthands[i]?.shorthand;
+            const startIndex = tokenIndex - shorthand.mathText.length;
+            console.log(startIndex, tokenIndex);
+            const value = <MathText> this.shorthands[i]?.value;
+            if (startIndex < 0) continue;
+            const potentialShorthand = new MathText(this.mathText.slice(startIndex, tokenIndex));
+            if (potentialShorthand.equals(shorthand)) {
+                this.mathText = this.mathText.toSpliced(startIndex, tokenIndex, ...value.mathText);
+                this.reset();
+                // return index - shorthand.getSize() + value.getSize();
+                return index;
+            }
+        }
+
+        return index;
+    }
+
+    /**
      * inserts token and returns new math index ofc
      */
+<<<<<<< HEAD
     public insertToken(index: number, insertToken: MathToken | string): number {
         // if (typeof insertToken === "string") return this.insertToken(index, mathToken(insertToken));
         if (typeof insertToken === "string") insertToken = mathToken(insertToken);
@@ -193,10 +288,22 @@ class MathText {
     }
     
     public newIndexRange(startIndex: number, endIndex: number): number {
+=======
+    public insertToken(index: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
+        if (typeof insertToken === "string")
+            return this.insertToken(index, new MathText([mathToken(insertToken)]), toArgs);
+        if ((<MathToken> insertToken).name)
+            return this.insertToken(index, new MathText([<MathToken> insertToken]), toArgs);
+        
+        const insertTokens = <MathText> insertToken;
+        const indexDifference = toArgs ? 1 : insertTokens.getSize() - 1;
+
+>>>>>>> 7aa07d46d275229d7f8e1b006a71004590d099ae
         if (index === 0) {
-            this.mathText = this.mathText.toSpliced(0, 0, insertToken);
+            this.mathText = this.mathText.toSpliced(0, 0, ...insertTokens.mathText);
+            if (shorthand) this.convertShorthands(indexDifference);
             this.reset();
-            return 1;
+            return indexDifference;
         }
         
         let indexCount = 0;
@@ -205,9 +312,10 @@ class MathText {
             indexCount++;
 
             if (token.args.length === 0 && indexCount === index) {
-                this.mathText = this.mathText.toSpliced(i + 1, 0, insertToken);
+                this.mathText = this.mathText.toSpliced(i + 1, 0, ...insertTokens.mathText);
+                if (shorthand) this.convertShorthands(index + indexDifference);
                 this.reset();
-                return index + 1;
+                return index + indexDifference;
             }
 
             let argumentStartIndex = indexCount + 0;
@@ -216,7 +324,7 @@ class MathText {
 
                 if (indexCount + argument.getSize() > index) {
                     this.reset();
-                    return indexCount + argument.insertToken(index - indexCount, insertToken);
+                    return indexCount + argument.insertToken(index - indexCount, insertToken, toArgs);
                 }
 
                 indexCount += argument.getSize();
@@ -224,9 +332,10 @@ class MathText {
             }
 
             if (indexCount === index) {
-                this.mathText = this.mathText.toSpliced(i + 1, 0, insertToken);
+                this.mathText = this.mathText.toSpliced(i + 1, 0, ...insertTokens.mathText);
+                if (shorthand) this.convertShorthands(index + indexDifference);
                 this.reset();
-                return index + 1;
+                return index + indexDifference;
             }
         }
 
@@ -258,6 +367,20 @@ function mathBrackets(open: string, close: string, argument: MathText) {
 }
 
 export class MathInput {
+    public static defaultShorthands: Shorthand[] = [
+        {
+            shorthand: new MathText([
+                mathToken('s'),
+                mathToken('q'),
+                mathToken('r'),
+                mathToken('t'),
+            ]),
+            value: new MathText([
+                mathToken('\\sqrt ', [new MathText([])]),
+            ])
+        }
+    ];
+
     public static mathInput(element: HTMLElement): void {
         MathInput.mathInputs.push(new MathInput(element));
     }
@@ -284,29 +407,6 @@ export class MathInput {
             mathToken('a'),
         ])]),
     ]);
-    // private math: MathText = new MathText([
-    //     mathToken('\\det\\! '),
-    //     mathBrackets('(', ')', new MathText([
-    //         mathToken('A'),
-    //         mathBrackets('(', ')', new MathText([
-    //             mathToken('A'),
-    //             mathToken('^', [new MathText([
-    //                 mathToken('T'),
-    //             ])]),
-    //             mathToken('A'),
-    //         ])),
-    //         mathToken('^', [new MathText([
-    //             mathToken('-'),
-    //             mathToken('1'),
-    //         ])]),
-    //         mathToken('A'),
-    //         mathToken('^', [new MathText([
-    //             mathToken('T'),
-    //         ])]),
-    //     ])),
-    //     mathToken('='),
-    //     mathToken('0'),
-    // ]);
     
     private element: HTMLElement;
     private cursorIndex: number;
@@ -314,6 +414,7 @@ export class MathInput {
     private renderingLatex: string = "";
 
     public constructor(element: HTMLElement) {
+        this.math.setShorthands(MathInput.defaultShorthands);
         this.element = element;
         this.cursorIndex = 0;
         this.cursorRange = 0;
@@ -367,6 +468,10 @@ export class MathInput {
                             return;
                         } else if (event.key === "_" || event.key === "&" || event.key === "#" || event.key === "%" || event.key === " ") {
                             this.cursorIndex = this.math.insertToken(this.cursorIndex, `\\${event.key} `);
+                            this.updateString();
+                            return;
+                        } else if (event.key === "^") {
+                            this.cursorIndex = this.math.insertToken(this.cursorIndex, mathToken('^', [new MathText([])]), true);
                             this.updateString();
                             return;
                         } else if (event.key === "(" || event.key === ")" || event.key === "^") return;
