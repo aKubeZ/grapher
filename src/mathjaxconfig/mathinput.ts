@@ -150,7 +150,49 @@ class MathText {
      * inserts token and returns new math index ofc
      */
     public insertToken(index: number, insertToken: MathToken | string): number {
-        if (typeof insertToken === "string") return this.insertToken(index, mathToken(insertToken));
+        // if (typeof insertToken === "string") return this.insertToken(index, mathToken(insertToken));
+        if (typeof insertToken === "string") insertToken = mathToken(insertToken);
+        if (index === 0) {
+            this.mathText = this.mathText.toSpliced(0, 0, insertToken);
+            this.reset();
+            return 1;
+        }
+        
+        let indexCount = 0;
+        for (let i = 0; i < this.mathText.length; i++) {
+            const token = <MathToken> this.mathText[i];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === index) {
+                this.mathText = this.mathText.toSpliced(i + 1, 0, insertToken);
+                this.reset();
+                return index + 1;
+            }
+
+            let argumentStartIndex = indexCount + 0;
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (indexCount + argument.getSize() > index) {
+                    this.reset();
+                    return indexCount + argument.insertToken(index - indexCount, insertToken);
+                }
+
+                indexCount += argument.getSize();
+                argumentStartIndex += argument.getSize();
+            }
+
+            if (indexCount === index) {
+                this.mathText = this.mathText.toSpliced(i + 1, 0, insertToken);
+                this.reset();
+                return index + 1;
+            }
+        }
+
+        return 0;
+    }
+    
+    public newIndexRange(startIndex: number, endIndex: number): number {
         if (index === 0) {
             this.mathText = this.mathText.toSpliced(0, 0, insertToken);
             this.reset();
