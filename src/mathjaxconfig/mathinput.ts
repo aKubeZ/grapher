@@ -6,6 +6,13 @@ type MathToken = {
     brackets?: [string, string];
 };
 
+function isToken(object: any) {
+    return (
+        "name" in object && typeof object.name === "string"
+        && "args" in object && Array.isArray(object.args) && (object.args.length === 0 || object.args[0] instanceof MathText)
+    );
+}
+
 type MathTextData = MathToken[];
 
 /**
@@ -20,6 +27,7 @@ class MathText {
     private mathSize: number | undefined;
     private shorthands: Shorthand[] = [];
     private firstEmptyArgument: number | undefined;
+    private static superscriptMathText = new MathText([mathToken('^', [new MathText([])])]);
 
     constructor(mathText: MathTextData) {
         this.mathText = mathText;
@@ -49,6 +57,26 @@ class MathText {
         this.mathString = undefined;
         this.mathSize = undefined;
         this.setShorthands(this.shorthands);
+    }
+
+    /**
+     * copies the entire thing deeep yayaayayayayaayayayaayay
+     */
+    public deepCopy(): MathText {
+        const newMathText: MathToken[] = [];
+        for (const token of this.mathText) {
+            const newArgs: MathText[] = [];
+            for (const argument of token.args)
+                newArgs.push(argument.deepCopy())
+            const newToken: MathToken = {
+                name: token.name,
+                args: newArgs,
+            }
+            if (token.brackets) newToken['brackets'] = token.brackets;
+            newMathText.push(newToken);
+        }
+
+        return new MathText(newMathText);
     }
 
     /**
@@ -224,7 +252,6 @@ class MathText {
                 break;
             }
 
-            let argumentStartIndex = indexCount + 0;
             for (let j = 0; j < token.args.length; j++) {
                 const argument = <MathText> token.args[j];
 
@@ -234,7 +261,6 @@ class MathText {
                 }
 
                 indexCount += argument.getSize();
-                argumentStartIndex += argument.getSize();
             }
 
             if (indexCount === index) {
@@ -243,18 +269,38 @@ class MathText {
             }
         }
 
-        if (tokenIndex === 0) return index;
+        // if (tokenIndex === 0) return index;
         tokenIndex++;
 
         for (let i = 0; i < this.shorthands.length; i++) {
             const shorthand = <MathText> this.shorthands[i]?.shorthand;
             const startIndex = tokenIndex - shorthand.mathText.length;
-            console.log(shorthand.mathText);
             const value = <MathText> this.shorthands[i]?.value();
+            // console.log(startIndex, shorthand.toString(), value.toString());
             if (startIndex < 0) continue;
             const potentialShorthand = new MathText(this.mathText.slice(startIndex, tokenIndex));
             if (potentialShorthand.equals(shorthand)) {
-                this.mathText = this.mathText.toSpliced(startIndex, tokenIndex, ...value.mathText);
+                if (
+                    startIndex !== 0
+                    && value.equals(MathText.superscriptMathText)
+                    && potentialShorthand.mathText.length === 1
+                    && this.mathText[startIndex - 1]?.name === '^'
+                ) {
+                    this.mathText = this.mathText.toSpliced(startIndex, 1);
+                    return index - 2;
+                } // check exponentns and allat
+
+                if (
+                    startIndex !== this.mathText.length - 1
+                    && value.equals(MathText.superscriptMathText)
+                    && potentialShorthand.mathText.length === 1
+                    && this.mathText[startIndex + 1]?.name === '^'
+                ) {
+                    this.mathText = this.mathText.toSpliced(startIndex, 1);
+                    return index;
+                }
+
+                this.mathText = this.mathText.toSpliced(startIndex, shorthand.mathText.length, ...value.mathText);
                 this.reset();
                 if (toArgs) return index - shorthand.getSize() + value.getFirstEmptyArgument();
                 else return index - shorthand.getSize() + value.getSize();
@@ -269,12 +315,14 @@ class MathText {
      */
     public insertToken(index: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
         if (typeof insertToken === "string")
-            return this.insertToken(index, new MathText([mathToken(insertToken)]), toArgs);
-        if ((<MathToken> insertToken).name)
-            return this.insertToken(index, new MathText([<MathToken> insertToken]), toArgs);
-        
+            insertToken = new MathText([mathToken(insertToken)]);
+        if (isToken(insertToken))
+            insertToken = new MathText([<MathToken> insertToken]);
         const insertTokens = <MathText> insertToken;
-        const indexDifference = toArgs ? 0 : insertTokens.getSize() - 1;
+        
+        if (insertTokens.equals(new MathText([mathToken('^')])) && index === 0) return index;
+
+        const indexDifference = toArgs ? 1 : insertTokens.getSize() - 1;
 
         if (index === 0) {
             this.mathText = this.mathText.toSpliced(0, 0, ...insertTokens.mathText);
@@ -318,16 +366,179 @@ class MathText {
 
         return 0;
     }
+
+    /**
+     * returns where the cursor index goes when you rpess the tab or shift tab key,
+     * tabTo = "pre" if shift+tab, tabTo = "post" if only tab
+     * dont' worry about the other two nmbers
+     */
+    public tabIndex(index: number, tabTo: "pre" | "post", escapeIndex?: number, indexOffset: number = 0): number {
+        if (!escapeIndex) escapeIndex = (tabTo === "pre") ? 0 : this.getSize() - 1;
+        if (index === 0) return indexOffset + escapeIndex;
+        
+        let indexCount = 0;
+        for (let i = 0; i < this.mathText.length; i++) {
+            const token = <MathToken> this.mathText[i];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === index) {
+                break;
+            }
+
+            let argumentSizeCount = 0;
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (indexCount + argument.getSize() > index) {
+                    return argument.tabIndex(
+                        index - indexCount, tabTo,
+                        (tabTo === "pre")
+                            ? -1
+                            : argument.getSize(),
+                        indexOffset + indexCount
+                    );
+                }
+
+                indexCount += argument.getSize();
+                argumentSizeCount += argument.getSize();
+            }
+
+            if (indexCount === index) {
+                break;
+            }
+        }
+
+        return indexOffset + escapeIndex;
+    }
+
+    /**
+     * returns the absolute last index of the end of the text thing
+     * implemented using tabIndex bc i aint like ognna encapsluation it
+     */
+    public getTextEnd(index: number, textEndType: "pre" | "post"): number {
+        return Math.max(0, Math.min(this.getSize() - 1, this.tabIndex(index, textEndType) + ((textEndType === "pre") ? 1 : -1)));
+    }
+
+    /**
+     * expands selection, like so
+     * (a[bc)] => [(abc)]
+     */
+
+    public expandSelection(indexStart: number, indexEnd: number): [number, number] {
+        if (indexStart >= indexEnd) return [indexStart, indexEnd];
+        
+        let indexCount = 0;
+        let indexStartCount = 0;
+        let indexStartTokenIndexIndex = 0;
+        let indexStartArgumentIndex = 0;
+        let tokenIndex = 0;
+        let indexStartTokenIndex = 0;
+        let indexEndTokenIndex = 0;
+        let indexEndTokenIndexIndex = 0;
+        // let indexEndArgumentIndex = 0;
+        let indexStartNested = false;
+        let indexEndNested = false;
+
+        mainLoop:
+        for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
+            const token = <MathToken> this.mathText[tokenIndex];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === indexStart) {
+                indexStartTokenIndex = tokenIndex;
+                indexStartCount = indexCount;
+                indexStartTokenIndexIndex = indexCount;
+            } else if (token.args.length === 0 && indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex;
+                indexEndTokenIndexIndex = indexCount;
+                break mainLoop;
+            }
+
+            const tokenStartIndexCount = indexCount;
+            let argumentSizeCount = 0;
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (!indexStartNested && indexCount + argument.getSize() > indexStart) {
+                    indexStartNested = true;
+                    indexStartArgumentIndex = j;
+                    indexStartTokenIndexIndex = tokenStartIndexCount - 1;
+                    indexStartCount = indexCount;
+                }
+                
+                if (!indexEndNested && indexCount + argument.getSize() > indexEnd) {
+                    // indexEndArgumentIndex = j;
+                    indexEndNested = true;
+                }
+
+                indexCount += argument.getSize();
+                argumentSizeCount += argument.getSize();
+            }
+
+            if (indexEndNested) {
+                indexEndTokenIndexIndex = indexCount;
+                break mainLoop;
+            }
+
+            if (indexCount === indexStart) {
+                indexStartTokenIndex = tokenIndex;
+                indexStartCount = indexCount;
+            } else if (indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex;
+                indexEndTokenIndexIndex = indexCount;
+                break mainLoop;
+            }
+        }
+
+        console.log(
+            'iC ' + indexCount,
+            'iSC ' + indexStartCount,
+            'iSTII ' + indexStartTokenIndexIndex,
+            'iSAI ' + indexStartArgumentIndex,
+            'tI ' + tokenIndex,
+            'iSTI ' + indexStartTokenIndex,
+            'iETI ' + indexEndTokenIndex,
+            'iETII ' + indexEndTokenIndexIndex,
+            'iSN ' + indexStartNested,
+            'iEN ' + indexEndNested,
+        )
+
+        const token = <MathToken> this.mathText[tokenIndex];
+        if (indexStartNested && indexEndNested && indexStartTokenIndex == indexEndTokenIndex) {
+            const argument = <MathText> token.args[indexStartArgumentIndex];
+            const relativeIndices = argument.expandSelection(indexStart - indexStartCount, indexEnd - indexStartCount);
+            return [indexStartCount + relativeIndices[0], indexStartCount + relativeIndices[1]];
+        }
+
+        console.log(indexStartTokenIndexIndex, indexEndTokenIndexIndex);
+        return [indexStartTokenIndexIndex, indexEndTokenIndexIndex];
+    }
+
+    /**
+     * contracts selection, like so
+     * (a[bc)] => (a[bc])
+     */
+    public contractSelection(indexStart: number, indexEnd: number): [number, number] {
+        return [0,0];
+    }
 }
 
 /**
  * just makes a token for the sake of convenience
  */
-function mathToken(name: string, args: MathText[] = []) {
+function mathToken(name: string, args: MathText[] = []): MathToken {
     return {
         name: name,
         args: args,
     };
+}
+
+function shorthand(tokens: MathToken[], output: MathToken | MathToken[]): Shorthand {
+    output = (isToken(output)) ? [<MathToken> output] : <MathToken[]> output;
+    return {
+        shorthand: new MathText(tokens),
+        value: () => new MathText(output).deepCopy()
+    }
 }
 
 /**
@@ -345,31 +556,26 @@ function mathBrackets(open: string, close: string, argument: MathText) {
 
 export class MathInput {
     public static defaultShorthands: Shorthand[] = [
-        {
-            shorthand: new MathText([
-                mathToken('s'),
-                mathToken('q'),
-                mathToken('r'),
-                mathToken('t'),
-            ]),
-            value: () => new MathText([
-                mathToken('\\sqrt ', [new MathText([])]),
-            ])
-        }, {
-            shorthand: new MathText([
-                mathToken('/'),
-            ]),
-            value: () => new MathText([
-                mathToken('\\frac ', [new MathText([]), new MathText([])]),
-            ])
-        }, {
-            shorthand: new MathText([
-                mathToken('^'),
-            ]),
-            value: () => new MathText([
-                mathToken('^', [new MathText([])]),
-            ])
-        }
+        shorthand([
+            mathToken('s'),
+            mathToken('q'),
+            mathToken('r'),
+            mathToken('t'),
+        ], mathToken('\\sqrt ', [new MathText([])])),
+        shorthand([mathToken('/')],
+            mathToken('\\frac ', [new MathText([]), new MathText([])])
+        ), shorthand([mathToken('^')], mathToken('^', [new MathText([])])),
+        shorthand([mathToken('\\_ ')], mathToken('_', [new MathText([])])),
+        shorthand([
+            mathToken('o'),
+            mathToken('o'),
+            mathToken('o'),
+        ], mathToken('\\infty ')),
+        shorthand([
+            mathToken('i'),
+            mathToken('n'),
+            mathToken('t'),
+        ], mathToken('\\int '))
     ];
 
     public static mathInput(element: HTMLElement): void {
@@ -400,15 +606,14 @@ export class MathInput {
     ]);
     
     private element: HTMLElement;
-    private cursorIndex: number;
-    private cursorRange: number;
+    private cursorIndex: number = 0;
+    private cursorRange: number = 0;
+    private cursorDirection: number = 0;
     private renderingLatex: string = "";
 
     public constructor(element: HTMLElement) {
         this.math.setShorthands(MathInput.defaultShorthands);
         this.element = element;
-        this.cursorIndex = 0;
-        this.cursorRange = 0;
         this.initElement();
         this.updateString(true);
     }
@@ -420,22 +625,51 @@ export class MathInput {
             event.preventDefault();
             switch (event.key) {
                 case "ArrowLeft": {
-                    if (this.cursorIndex === 0) break;
-                    this.cursorIndex--;
+                    if (this.cursorIndex + this.cursorRange === 0) break;
+                    if (event.shiftKey) {
+                        if (this.cursorRange === 0) break;
+                        this.cursorRange--;
+                        const newSelection = this.math.contractSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        this.cursorIndex = newSelection[0];
+                        this.cursorRange = newSelection[1] - newSelection[0];
+                    } else {
+                        this.collapseCursor();
+                        this.cursorIndex--;
+                    }
+
                     this.updateString();
                 } break;
                 case "ArrowRight": {
-                    if (this.cursorIndex === this.math.getSize() - 1) break;
-                    this.cursorIndex++;
+                    if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
+                    if (event.shiftKey) {
+                        this.cursorRange++;
+                        const newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        this.cursorIndex = newSelection[0];
+                        this.cursorRange = newSelection[1] - newSelection[0];
+                    } else {
+                        this.collapseCursor();
+                        this.cursorIndex++;
+                    }
+                    
                     this.updateString();
                 } break;
                 case "Backspace": {
-                    this.cursorIndex = this.math.backspace(this.cursorIndex);
+                    if (event.ctrlKey) {
+                        this.cursorIndex = 0;
+                        this.math = new MathText([]);
+                    } else this.cursorIndex = this.math.backspace(this.cursorIndex);
                     this.updateString();
                 } break;
                 case "Delete": {
                     if (this.cursorIndex === this.math.getSize() - 1) break;
                     this.cursorIndex = this.math.backspace(this.cursorIndex + 1);
+                    this.updateString();
+                } break;
+                case "Tab": {
+                    if (event.shiftKey)
+                        this.cursorIndex = this.math.tabIndex(this.cursorIndex, "pre");
+                    else
+                        this.cursorIndex = this.math.tabIndex(this.cursorIndex, "post");
                     this.updateString();
                 } break;
                 case "Space":
@@ -449,10 +683,6 @@ export class MathInput {
                             this.cursorIndex = this.math.insertToken(this.cursorIndex, "\\cdot ");
                             this.updateString();
                             return;
-                        } else if (event.key === "|") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, "\\vert ");
-                            this.updateString();
-                            return;
                         } else if (event.key === "\\") {
                             this.cursorIndex = this.math.insertToken(this.cursorIndex, `\\backslash `);
                             this.updateString();
@@ -461,7 +691,20 @@ export class MathInput {
                             this.cursorIndex = this.math.insertToken(this.cursorIndex, `\\${event.key} `);
                             this.updateString();
                             return;
-                        } else if (event.key === "(" || event.key === ")") return;
+                        } else if (event.key === "(") {
+                            this.cursorIndex = this.math.insertToken(this.cursorIndex, mathBrackets('(', ')', new MathText([])), true);
+                            this.updateString();
+                            return;
+                        } else if (event.key === ")") {
+                            if (this.cursorIndex === this.math.getSize() - 1) return;
+                            this.cursorIndex++;
+                            this.updateString();
+                            return;
+                        } else if (event.key === "|") {
+                            this.cursorIndex = this.math.insertToken(this.cursorIndex, mathBrackets('\\lvert ', '\\rvert ', new MathText([])), true);
+                            this.updateString();
+                            return;
+                        }
 
                         const charCode = event.key.charCodeAt(0);
                         if (33 <= charCode && charCode <= 127) {
@@ -476,6 +719,7 @@ export class MathInput {
         this.element.addEventListener("focus", (event) => {
             event.preventDefault();
             this.cursorIndex = 0;
+            this.cursorRange = 0;
             this.updateString();
         });
 
@@ -486,6 +730,11 @@ export class MathInput {
         this.updateString();
     }
 
+    private collapseCursor(): void {
+        this.cursorRange = 0;
+        this.cursorDirection = 0;
+    }
+
     // updates string AND cursor pos
     public updateString(unfocus?: boolean): void {
         // const cursorPos = 0;
@@ -493,11 +742,13 @@ export class MathInput {
 
 
         let mathString = this.math.toString();
-        if (this.cursorRange === 0)
-            mathString = mathString.slice(0, cursorPos) + (!unfocus ? "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" : "") + mathString.slice(cursorPos);
-        else {
-            const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
-            mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
+        if (!unfocus) {
+            if (this.cursorRange === 0)
+                mathString = mathString.slice(0, cursorPos) + "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" + mathString.slice(cursorPos);
+            else {
+                const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
+                mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
+            }
         }
 
         // mathString = String.raw`six\bbox[blue, 1pt]{seven}`;
