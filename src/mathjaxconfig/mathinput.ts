@@ -231,7 +231,22 @@ class MathText {
             }
         }
 
+        this.mathSize = this.firstEmptyArgument;
         return this.firstEmptyArgument;
+    }
+
+    /**
+     * sets the first empty argument ofc ofc
+     */
+    public setFirstEmptyArgument(argumentMathText: MathText): void {
+        for (const token of this.mathText) {
+            for (const argument of token.args) {
+                if (argument.mathText.length === 0) {
+                    argument.mathText = argumentMathText.mathText;
+                    this.reset();
+                }
+            }
+        }
     }
 
     /**
@@ -368,6 +383,93 @@ class MathText {
     }
 
     /**
+     * replaces the token at the indices, if like they arent expnaded youre cooked ok
+     */
+    public replaceInsertToken(indexStart: number, indexEnd: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
+        if (indexStart === indexEnd) return this.insertToken(indexStart, insertToken, toArgs, shorthand);
+        if (typeof insertToken === "string")
+            insertToken = new MathText([mathToken(insertToken)]);
+        if (isToken(insertToken))
+            insertToken = new MathText([<MathToken> insertToken]);
+        const insertTokens = <MathText> insertToken;
+
+        let indexCount = 0;
+        let tokenIndex = 0;
+
+        let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
+        let indexEnded = false; // if the indexEnd stuffs is already defined
+        let indexStartNested = false; // if indexStart is nested
+        let indexEndNested = false; // if indexEnd is nested
+        let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
+        let indexStartArgumentIndex = 0; // which argument of the token where the start index is
+        let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
+        let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
+        let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
+
+        mainLoop:
+        for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
+            const token = <MathToken> this.mathText[tokenIndex];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === indexStart) {
+                indexStarted = true;
+            }
+        
+            if (token.args.length === 0 && indexCount === indexEnd) {
+                break mainLoop;
+            }
+
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (!indexStarted && indexCount + argument.getSize() > indexStart) {
+                    indexStartTokenIndex = tokenIndex;
+                    indexStartArgumentIndex = j;
+                    indicesNestedStart = indexCount;
+                    indexStartNested = true;
+                    indexStarted = true;
+                }
+                
+                if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
+                    indexEndTokenIndex = tokenIndex;
+                    IndexEndArgumentIndex = j;
+                    indexEndNested = true;
+                    indexEnded = true;
+                }
+
+                indexCount += argument.getSize();
+            }
+
+            if (indexEndNested) {
+                break mainLoop;
+            }
+
+            if (indexCount === indexStart) {
+                indexStarted = true;
+            }
+
+            if (indexCount === indexEnd) {
+                break mainLoop;
+            }
+        }
+
+        if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
+            const token = <MathToken> this.mathText[indexStartTokenIndex];
+            const argument = <MathText> token.args[indexStartArgumentIndex];
+            this.reset();
+            return indicesNestedStart + argument.replaceInsertToken(
+                indexStart - indicesNestedStart,
+                indexEnd - indicesNestedStart,
+                insertToken, toArgs, shorthand
+            );
+        }
+
+        const replacedText = this.mathText.slice(indexStartTokenIndex, indexEndTokenIndex);
+        this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex, ...insertTokens.mathText);
+        return 0;
+    }
+
+    /**
      * returns where the cursor index goes when you rpess the tab or shift tab key,
      * tabTo = "pre" if shift+tab, tabTo = "post" if only tab
      * dont' worry about the other two nmbers
@@ -425,19 +527,22 @@ class MathText {
      */
 
     public expandSelection(indexStart: number, indexEnd: number): [number, number] {
-        if (indexStart >= indexEnd) return [indexStart, indexEnd];
+        if (indexStart === indexEnd) return [indexStart, indexEnd];
         
         let indexCount = 0;
-        let indexStartCount = 0;
-        let indexStartTokenIndexIndex = 0;
-        let indexStartArgumentIndex = 0;
         let tokenIndex = 0;
-        let indexStartTokenIndex = 0;
-        let indexEndTokenIndex = 0;
-        let indexEndTokenIndexIndex = 0;
-        // let indexEndArgumentIndex = 0;
-        let indexStartNested = false;
-        let indexEndNested = false;
+
+        let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
+        let indexEnded = false; // if the indexEnd stuffs is already defined
+        let indexStartNested = false; // if indexStart is nested
+        let indexEndNested = false; // if indexEnd is nested
+        let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
+        let indexStartArgumentIndex = 0; // which argument of the token where the start index is
+        let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
+        let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
+        let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
+        let newIndexStart = 0; // what it returns IFF indexStart & indexEnd aren't nested in the same palce
+        let newIndexEnd = 0; // what it returns IFF indexStart & indexEnd aren't nested in the same palce
 
         mainLoop:
         for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
@@ -445,81 +550,62 @@ class MathText {
             indexCount++;
 
             if (token.args.length === 0 && indexCount === indexStart) {
-                indexStartTokenIndex = tokenIndex;
-                indexStartCount = indexCount;
-                indexStartTokenIndexIndex = indexCount;
-            } else if (token.args.length === 0 && indexCount === indexEnd) {
-                indexEndTokenIndex = tokenIndex;
-                indexEndTokenIndexIndex = indexCount;
+                indexStarted = true;
+                newIndexStart = indexStart;
+            }
+        
+            if (token.args.length === 0 && indexCount === indexEnd) {
+                newIndexEnd = indexEnd;
                 break mainLoop;
             }
 
-            const tokenStartIndexCount = indexCount;
-            let argumentSizeCount = 0;
+            const tokenStartIndex = indexCount;
             for (let j = 0; j < token.args.length; j++) {
                 const argument = <MathText> token.args[j];
 
-                if (!indexStartNested && indexCount + argument.getSize() > indexStart) {
-                    indexStartNested = true;
+                if (!indexStarted && indexCount + argument.getSize() > indexStart) {
+                    indexStartTokenIndex = tokenIndex;
                     indexStartArgumentIndex = j;
-                    indexStartTokenIndexIndex = tokenStartIndexCount - 1;
-                    indexStartCount = indexCount;
+                    indicesNestedStart = indexCount;
+                    newIndexStart = tokenStartIndex - 1;
+                    indexStartNested = true;
+                    indexStarted = true;
                 }
                 
-                if (!indexEndNested && indexCount + argument.getSize() > indexEnd) {
-                    // indexEndArgumentIndex = j;
+                if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
+                    indexEndTokenIndex = tokenIndex;
+                    IndexEndArgumentIndex = j;
                     indexEndNested = true;
+                    indexEnded = true;
                 }
 
                 indexCount += argument.getSize();
-                argumentSizeCount += argument.getSize();
             }
 
             if (indexEndNested) {
-                indexEndTokenIndexIndex = indexCount;
+                newIndexEnd = indexCount;
                 break mainLoop;
             }
 
             if (indexCount === indexStart) {
-                indexStartTokenIndex = tokenIndex;
-                indexStartCount = indexCount;
-            } else if (indexCount === indexEnd) {
-                indexEndTokenIndex = tokenIndex;
-                indexEndTokenIndexIndex = indexCount;
+                indexStarted = true;
+                newIndexStart = indexStart;
+            }
+
+            if (indexCount === indexEnd) {
+                newIndexEnd = indexEnd;
                 break mainLoop;
             }
         }
 
-        console.log(
-            'iC ' + indexCount,
-            'iSC ' + indexStartCount,
-            'iSTII ' + indexStartTokenIndexIndex,
-            'iSAI ' + indexStartArgumentIndex,
-            'tI ' + tokenIndex,
-            'iSTI ' + indexStartTokenIndex,
-            'iETI ' + indexEndTokenIndex,
-            'iETII ' + indexEndTokenIndexIndex,
-            'iSN ' + indexStartNested,
-            'iEN ' + indexEndNested,
-        )
-
-        const token = <MathToken> this.mathText[tokenIndex];
-        if (indexStartNested && indexEndNested && indexStartTokenIndex == indexEndTokenIndex) {
+        if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
+            const token = <MathToken> this.mathText[indexStartTokenIndex];
             const argument = <MathText> token.args[indexStartArgumentIndex];
-            const relativeIndices = argument.expandSelection(indexStart - indexStartCount, indexEnd - indexStartCount);
-            return [indexStartCount + relativeIndices[0], indexStartCount + relativeIndices[1]];
+            const relativeIndices = argument.expandSelection(indexStart - indicesNestedStart, indexEnd - indicesNestedStart);
+            return [indicesNestedStart + relativeIndices[0], indicesNestedStart + relativeIndices[1]];
         }
 
-        console.log(indexStartTokenIndexIndex, indexEndTokenIndexIndex);
-        return [indexStartTokenIndexIndex, indexEndTokenIndexIndex];
-    }
-
-    /**
-     * contracts selection, like so
-     * (a[bc)] => (a[bc])
-     */
-    public contractSelection(indexStart: number, indexEnd: number): [number, number] {
-        return [0,0];
+        return [newIndexStart, newIndexEnd];
     }
 }
 
@@ -625,29 +711,53 @@ export class MathInput {
             event.preventDefault();
             switch (event.key) {
                 case "ArrowLeft": {
-                    if (this.cursorIndex + this.cursorRange === 0) break;
                     if (event.shiftKey) {
-                        if (this.cursorRange === 0) break;
-                        this.cursorRange--;
-                        const newSelection = this.math.contractSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        if (this.cursorIndex === 0) break;
+                        let newSelection: [number, number];
+                        if (this.cursorDirection === 1) {
+                            this.cursorRange--;
+                            if (this.cursorRange === 0) this.collapseCursor();
+                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        } else {
+                            this.cursorDirection = -1;
+                            this.cursorRange++;
+                            this.cursorIndex--;
+                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        }
+
                         this.cursorIndex = newSelection[0];
                         this.cursorRange = newSelection[1] - newSelection[0];
-                    } else {
+                    } else if (this.cursorDirection) {
                         this.collapseCursor();
+                    } else {
+                        if (this.cursorIndex === 0) break;
                         this.cursorIndex--;
                     }
-
+                    
                     this.updateString();
                 } break;
                 case "ArrowRight": {
-                    if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
                     if (event.shiftKey) {
-                        this.cursorRange++;
-                        const newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
+                        let newSelection: [number, number];
+                        if (this.cursorDirection === -1) {
+                            this.cursorRange--;
+                            this.cursorIndex++;
+                            if (this.cursorRange === 0) this.collapseCursor();
+                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        } else {
+                            this.cursorRange++;
+                            this.cursorDirection = 1;
+                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
+                        }
+
                         this.cursorIndex = newSelection[0];
                         this.cursorRange = newSelection[1] - newSelection[0];
-                    } else {
+                    } else if (this.cursorDirection) {
+                        this.cursorIndex = this.cursorIndex + this.cursorRange;
                         this.collapseCursor();
+                    } else {
+                        if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
                         this.cursorIndex++;
                     }
                     
@@ -747,7 +857,8 @@ export class MathInput {
                 mathString = mathString.slice(0, cursorPos) + "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" + mathString.slice(cursorPos);
             else {
                 const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
-                mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
+                // mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
+                mathString = mathString.slice(0, cursorPos) + String.raw`[` + mathString.slice(cursorPos, cursorEndPos) + ']' + mathString.slice(cursorEndPos);
             }
         }
 
