@@ -237,6 +237,7 @@ class MathText {
 
     /**
      * sets the first empty argument ofc ofc
+     * if no first empty argument it just does nothing
      */
     public setFirstEmptyArgument(argumentMathText: MathText): void {
         for (const token of this.mathText) {
@@ -252,8 +253,10 @@ class MathText {
     /**
      * converts like s,q,r,t -> sqrt
      * note that this inputs the newIndex
+     * and returns the newindex lmaooo
+     * also fills mempty arguments provavly
      */
-    public convertShorthands(index: number, toArgs: boolean): number {
+    public convertShorthands(index: number, toArgs: boolean, argumentFill: MathText = new MathText([])): number {
         if (index === 0) return index;
         
         let indexCount = 0;
@@ -317,6 +320,7 @@ class MathText {
 
                 this.mathText = this.mathText.toSpliced(startIndex, shorthand.mathText.length, ...value.mathText);
                 this.reset();
+                value.setFirstEmptyArgument(argumentFill);
                 if (toArgs) return index - shorthand.getSize() + value.getFirstEmptyArgument();
                 else return index - shorthand.getSize() + value.getSize();
             }
@@ -384,90 +388,92 @@ class MathText {
 
     /**
      * replaces the token at the indices, if like they arent expnaded youre cooked ok
+     * IM TOO LAZY TO MAKE THIS
      */
-    public replaceInsertToken(indexStart: number, indexEnd: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
-        if (indexStart === indexEnd) return this.insertToken(indexStart, insertToken, toArgs, shorthand);
-        if (typeof insertToken === "string")
-            insertToken = new MathText([mathToken(insertToken)]);
-        if (isToken(insertToken))
-            insertToken = new MathText([<MathToken> insertToken]);
-        const insertTokens = <MathText> insertToken;
+    // public replaceInsertToken(indexStart: number, indexEnd: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
+    //     if (indexStart === indexEnd) return this.insertToken(indexStart, insertToken, toArgs, shorthand);
+    //     if (typeof insertToken === "string")
+    //         insertToken = new MathText([mathToken(insertToken)]);
+    //     if (isToken(insertToken))
+    //         insertToken = new MathText([<MathToken> insertToken]);
+    //     const insertTokens = <MathText> insertToken;
 
-        let indexCount = 0;
-        let tokenIndex = 0;
+    //     let indexCount = 0;
+    //     let tokenIndex = 0;
 
-        let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
-        let indexEnded = false; // if the indexEnd stuffs is already defined
-        let indexStartNested = false; // if indexStart is nested
-        let indexEndNested = false; // if indexEnd is nested
-        let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
-        let indexStartArgumentIndex = 0; // which argument of the token where the start index is
-        let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
-        let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
-        let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
+    //     let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
+    //     let indexEnded = false; // if the indexEnd stuffs is already defined
+    //     let indexStartNested = false; // if indexStart is nested
+    //     let indexEndNested = false; // if indexEnd is nested
+    //     let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
+    //     let indexStartArgumentIndex = 0; // which argument of the token where the start index is
+    //     let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
+    //     let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
+    //     let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
 
-        mainLoop:
-        for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
-            const token = <MathToken> this.mathText[tokenIndex];
-            indexCount++;
+    //     mainLoop:
+    //     for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
+    //         const token = <MathToken> this.mathText[tokenIndex];
+    //         indexCount++;
 
-            if (token.args.length === 0 && indexCount === indexStart) {
-                indexStarted = true;
-            }
+    //         if (token.args.length === 0 && indexCount === indexStart) {
+    //             indexStarted = true;
+    //         }
         
-            if (token.args.length === 0 && indexCount === indexEnd) {
-                break mainLoop;
-            }
+    //         if (token.args.length === 0 && indexCount === indexEnd) {
+    //             break mainLoop;
+    //         }
 
-            for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+    //         for (let j = 0; j < token.args.length; j++) {
+    //             const argument = <MathText> token.args[j];
 
-                if (!indexStarted && indexCount + argument.getSize() > indexStart) {
-                    indexStartTokenIndex = tokenIndex;
-                    indexStartArgumentIndex = j;
-                    indicesNestedStart = indexCount;
-                    indexStartNested = true;
-                    indexStarted = true;
-                }
+    //             if (!indexStarted && indexCount + argument.getSize() > indexStart) {
+    //                 indexStartTokenIndex = tokenIndex;
+    //                 indexStartArgumentIndex = j;
+    //                 indicesNestedStart = indexCount;
+    //                 indexStartNested = true;
+    //                 indexStarted = true;
+    //             }
                 
-                if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
-                    indexEndTokenIndex = tokenIndex;
-                    IndexEndArgumentIndex = j;
-                    indexEndNested = true;
-                    indexEnded = true;
-                }
+    //             if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
+    //                 indexEndTokenIndex = tokenIndex;
+    //                 IndexEndArgumentIndex = j;
+    //                 indexEndNested = true;
+    //                 indexEnded = true;
+    //             }
 
-                indexCount += argument.getSize();
-            }
+    //             indexCount += argument.getSize();
+    //         }
 
-            if (indexEndNested) {
-                break mainLoop;
-            }
+    //         if (indexEndNested) {
+    //             break mainLoop;
+    //         }
 
-            if (indexCount === indexStart) {
-                indexStarted = true;
-            }
+    //         if (indexCount === indexStart) {
+    //             indexStarted = true;
+    //         }
 
-            if (indexCount === indexEnd) {
-                break mainLoop;
-            }
-        }
+    //         if (indexCount === indexEnd) {
+    //             break mainLoop;
+    //         }
+    //     }
 
-        if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
-            const token = <MathToken> this.mathText[indexStartTokenIndex];
-            const argument = <MathText> token.args[indexStartArgumentIndex];
-            this.reset();
-            return indicesNestedStart + argument.replaceInsertToken(
-                indexStart - indicesNestedStart,
-                indexEnd - indicesNestedStart,
-                insertToken, toArgs, shorthand
-            );
-        }
+    //     if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
+    //         const token = <MathToken> this.mathText[indexStartTokenIndex];
+    //         const argument = <MathText> token.args[indexStartArgumentIndex];
+    //         this.reset();
+    //         return indicesNestedStart + argument.replaceInsertToken(
+    //             indexStart - indicesNestedStart,
+    //             indexEnd - indicesNestedStart,
+    //             insertToken, toArgs, shorthand
+    //         );
+    //     }
 
-        const replacedText = this.mathText.slice(indexStartTokenIndex, indexEndTokenIndex);
-        this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex, ...insertTokens.mathText);
-        return 0;
-    }
+    //     const replacedText = new MathText(this.mathText.slice(indexStartTokenIndex, indexEndTokenIndex));
+    //     const newIndex = indexStart + insertTokens.getSize();
+    //     this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex, ...insertTokens.mathText);
+    //     return this.convertShorthands(newIndex, toArgs || false, replacedText);
+    // }
 
     /**
      * returns where the cursor index goes when you rpess the tab or shift tab key,
