@@ -1,33 +1,32 @@
-import * as mathjax from "./mathjax.js";
-
-type MathToken = {
+export type MathToken = {
     name: string;
     args: MathText[];
     brackets?: [string, string];
 };
 
-function isToken(object: any) {
+export function isToken(object: any) {
     return (
         "name" in object && typeof object.name === "string"
         && "args" in object && Array.isArray(object.args) && (object.args.length === 0 || object.args[0] instanceof MathText)
     );
 }
 
-type MathTextData = MathToken[];
+export type MathTextData = MathToken[];
 
 /**
  * shorthands, like s,q,r,t -> \sqrt
  * mathtext to a mathtext supplier yay
- */
-type Shorthand = { shorthand: MathText, value: () => MathText };
+*/
+export type Shorthand = { shorthand: MathText, value: () => MathText };
 
-class MathText {
+export class MathText {
     private mathText: MathTextData;
     private mathString: string | undefined;
     private mathSize: number | undefined;
     private shorthands: Shorthand[] = [];
     private firstEmptyArgument: number | undefined;
     private static superscriptMathText = new MathText([mathToken('^', [new MathText([])])]);
+    private static subscriptMathText = new MathText([mathToken('_', [new MathText([])])]);
 
     constructor(mathText: MathTextData) {
         this.mathText = mathText;
@@ -56,7 +55,13 @@ class MathText {
     private reset(): void {
         this.mathString = undefined;
         this.mathSize = undefined;
+        this.firstEmptyArgument = undefined;
         this.setShorthands(this.shorthands);
+    }
+
+    public clear(): void {
+        this.mathText = [];
+        this.reset();
     }
 
     /**
@@ -216,6 +221,90 @@ class MathText {
     }
 
     /**
+     * deletes tokens all of them in the range
+     */
+    public delete(indexStart: number, indexEnd: number): number {
+        if (indexStart === indexEnd) return indexStart;
+        let indexCount = 0;
+        let tokenIndex = 0;
+
+        let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
+        let indexEnded = false; // if the indexEnd stuffs is already defined
+        let indexStartNested = false; // if indexStart is nested
+        let indexEndNested = false; // if indexEnd is nested
+        let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
+        let indexStartArgumentIndex = 0; // which argument of the token where the start index is
+        let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
+        let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
+        let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
+
+        mainLoop:
+        for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
+            const token = <MathToken> this.mathText[tokenIndex];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === indexStart) {
+                indexStarted = true;
+                indexStartTokenIndex = tokenIndex + 1;
+            }
+        
+            if (token.args.length === 0 && indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex + 1;
+                break mainLoop;
+            }
+
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (!indexStarted && indexCount + argument.getSize() > indexStart) {
+                    indexStartTokenIndex = tokenIndex;
+                    indexStartArgumentIndex = j;
+                    indicesNestedStart = indexCount;
+                    indexStartNested = true;
+                    indexStarted = true;
+                }
+                
+                if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
+                    indexEndTokenIndex = tokenIndex;
+                    IndexEndArgumentIndex = j;
+                    indexEndNested = true;
+                    indexEnded = true;
+                }
+
+                indexCount += argument.getSize();
+            }
+
+            if (indexEndNested) {
+                break mainLoop;
+            }
+
+            if (indexCount === indexStart) {
+                indexStarted = true;
+                indexStartTokenIndex = tokenIndex + 1;
+            }
+
+            if (indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex + 1;
+                break mainLoop;
+            }
+        }
+
+        if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
+            const token = <MathToken> this.mathText[indexStartTokenIndex];
+            const argument = <MathText> token.args[indexStartArgumentIndex];
+            this.reset();
+            return indicesNestedStart + argument.delete(
+                indexStart - indicesNestedStart,
+                indexEnd - indicesNestedStart
+            );
+        }
+
+        this.reset();
+        this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex);
+        return indexStart;
+    }
+
+    /**
      * returns the index of this first empty argument,
      * returns size if none
      */
@@ -224,7 +313,7 @@ class MathText {
 
         this.firstEmptyArgument = 1;
         for (const token of this.mathText) {
-            this.firstEmptyArgument += 1;
+            this.firstEmptyArgument++;
             for (const argument of token.args) {
                 if (argument.mathText.length === 0) return this.firstEmptyArgument;
                 this.firstEmptyArgument += argument.getSize();
@@ -245,6 +334,7 @@ class MathText {
                 if (argument.mathText.length === 0) {
                     argument.mathText = argumentMathText.mathText;
                     this.reset();
+                    return;
                 }
             }
         }
@@ -275,7 +365,7 @@ class MathText {
 
                 if (indexCount + argument.getSize() > index) {
                     this.reset();
-                    return indexCount + argument.convertShorthands(index - indexCount, toArgs);
+                    return indexCount + argument.convertShorthands(index - indexCount, toArgs, argumentFill);
                 }
 
                 indexCount += argument.getSize();
@@ -294,7 +384,6 @@ class MathText {
             const shorthand = <MathText> this.shorthands[i]?.shorthand;
             const startIndex = tokenIndex - shorthand.mathText.length;
             const value = <MathText> this.shorthands[i]?.value();
-            // console.log(startIndex, shorthand.toString(), value.toString());
             if (startIndex < 0) continue;
             const potentialShorthand = new MathText(this.mathText.slice(startIndex, tokenIndex));
             if (potentialShorthand.equals(shorthand)) {
@@ -317,6 +406,25 @@ class MathText {
                     this.mathText = this.mathText.toSpliced(startIndex, 1);
                     return index;
                 }
+                if (
+                    startIndex !== 0
+                    && value.equals(MathText.subscriptMathText)
+                    && potentialShorthand.mathText.length === 1
+                    && this.mathText[startIndex - 1]?.name === '_'
+                ) {
+                    this.mathText = this.mathText.toSpliced(startIndex, 1);
+                    return index - 2;
+                } // check exponentns and allat
+
+                if (
+                    startIndex !== this.mathText.length - 1
+                    && value.equals(MathText.subscriptMathText)
+                    && potentialShorthand.mathText.length === 1
+                    && this.mathText[startIndex + 1]?.name === '_'
+                ) {
+                    this.mathText = this.mathText.toSpliced(startIndex, 1);
+                    return index;
+                }
 
                 this.mathText = this.mathText.toSpliced(startIndex, shorthand.mathText.length, ...value.mathText);
                 this.reset();
@@ -332,7 +440,7 @@ class MathText {
     /**
      * inserts token and returns new math index ofc
      */
-    public insertToken(index: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
+    public insertToken(index: number, insertToken: MathText | MathToken | string, toArgs=true, shorthand=true): number {
         if (typeof insertToken === "string")
             insertToken = new MathText([mathToken(insertToken)]);
         if (isToken(insertToken))
@@ -390,90 +498,97 @@ class MathText {
      * replaces the token at the indices, if like they arent expnaded youre cooked ok
      * IM TOO LAZY TO MAKE THIS
      */
-    // public replaceInsertToken(indexStart: number, indexEnd: number, insertToken: MathText | MathToken | string, toArgs?: boolean, shorthand=true): number {
-    //     if (indexStart === indexEnd) return this.insertToken(indexStart, insertToken, toArgs, shorthand);
-    //     if (typeof insertToken === "string")
-    //         insertToken = new MathText([mathToken(insertToken)]);
-    //     if (isToken(insertToken))
-    //         insertToken = new MathText([<MathToken> insertToken]);
-    //     const insertTokens = <MathText> insertToken;
+    public replaceInsertToken(indexStart: number, indexEnd: number, insertToken: MathText | MathToken | string, toArgs=true, shorthand=true): number {
+        if (indexStart === indexEnd) return this.insertToken(indexStart, insertToken, toArgs, shorthand);
+        if (typeof insertToken === "string")
+            insertToken = new MathText([mathToken(insertToken)]);
+        if (isToken(insertToken))
+            insertToken = new MathText([<MathToken> insertToken]);
 
-    //     let indexCount = 0;
-    //     let tokenIndex = 0;
-
-    //     let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
-    //     let indexEnded = false; // if the indexEnd stuffs is already defined
-    //     let indexStartNested = false; // if indexStart is nested
-    //     let indexEndNested = false; // if indexEnd is nested
-    //     let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
-    //     let indexStartArgumentIndex = 0; // which argument of the token where the start index is
-    //     let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
-    //     let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
-    //     let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
-
-    //     mainLoop:
-    //     for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
-    //         const token = <MathToken> this.mathText[tokenIndex];
-    //         indexCount++;
-
-    //         if (token.args.length === 0 && indexCount === indexStart) {
-    //             indexStarted = true;
-    //         }
         
-    //         if (token.args.length === 0 && indexCount === indexEnd) {
-    //             break mainLoop;
-    //         }
+        const insertTokens = <MathText> insertToken;
 
-    //         for (let j = 0; j < token.args.length; j++) {
-    //             const argument = <MathText> token.args[j];
+        let indexCount = 0;
+        let tokenIndex = 0;
 
-    //             if (!indexStarted && indexCount + argument.getSize() > indexStart) {
-    //                 indexStartTokenIndex = tokenIndex;
-    //                 indexStartArgumentIndex = j;
-    //                 indicesNestedStart = indexCount;
-    //                 indexStartNested = true;
-    //                 indexStarted = true;
-    //             }
+        let indexStarted = (indexStart === 0); // if the indexStart stuffs is already defined
+        let indexEnded = false; // if the indexEnd stuffs is already defined
+        let indexStartNested = false; // if indexStart is nested
+        let indexEndNested = false; // if indexEnd is nested
+        let indicesNestedStart = 0; // like the . in a{.b[cde]f}, only if both indices nested in same place
+        let indexStartArgumentIndex = 0; // which argument of the token where the start index is
+        let IndexEndArgumentIndex = 0; // which argument of the token where the end index is
+        let indexStartTokenIndex = 0; // the tokenIndex of where indexStart is (this & below only defined if nested)
+        let indexEndTokenIndex = 0; // the tokenIndex of where indexEnd is (this & above to check if indices nested in the same place)
+
+        mainLoop:
+        for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
+            const token = <MathToken> this.mathText[tokenIndex];
+            indexCount++;
+
+            if (token.args.length === 0 && indexCount === indexStart) {
+                indexStarted = true;
+                indexStartTokenIndex = tokenIndex + 1;
+            }
+        
+            if (token.args.length === 0 && indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex + 1;
+                break mainLoop;
+            }
+
+            for (let j = 0; j < token.args.length; j++) {
+                const argument = <MathText> token.args[j];
+
+                if (!indexStarted && indexCount + argument.getSize() > indexStart) {
+                    indexStartTokenIndex = tokenIndex;
+                    indexStartArgumentIndex = j;
+                    indicesNestedStart = indexCount;
+                    indexStartNested = true;
+                    indexStarted = true;
+                }
                 
-    //             if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
-    //                 indexEndTokenIndex = tokenIndex;
-    //                 IndexEndArgumentIndex = j;
-    //                 indexEndNested = true;
-    //                 indexEnded = true;
-    //             }
+                if (!indexEnded && indexCount + argument.getSize() > indexEnd) {
+                    indexEndTokenIndex = tokenIndex;
+                    IndexEndArgumentIndex = j;
+                    indexEndNested = true;
+                    indexEnded = true;
+                }
 
-    //             indexCount += argument.getSize();
-    //         }
+                indexCount += argument.getSize();
+            }
 
-    //         if (indexEndNested) {
-    //             break mainLoop;
-    //         }
+            if (indexEndNested) {
+                break mainLoop;
+            }
 
-    //         if (indexCount === indexStart) {
-    //             indexStarted = true;
-    //         }
+            if (indexCount === indexStart) {
+                indexStarted = true;
+                indexStartTokenIndex = tokenIndex + 1;
+            }
 
-    //         if (indexCount === indexEnd) {
-    //             break mainLoop;
-    //         }
-    //     }
+            if (indexCount === indexEnd) {
+                indexEndTokenIndex = tokenIndex + 1;
+                break mainLoop;
+            }
+        }
 
-    //     if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
-    //         const token = <MathToken> this.mathText[indexStartTokenIndex];
-    //         const argument = <MathText> token.args[indexStartArgumentIndex];
-    //         this.reset();
-    //         return indicesNestedStart + argument.replaceInsertToken(
-    //             indexStart - indicesNestedStart,
-    //             indexEnd - indicesNestedStart,
-    //             insertToken, toArgs, shorthand
-    //         );
-    //     }
+        if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
+            const token = <MathToken> this.mathText[indexStartTokenIndex];
+            const argument = <MathText> token.args[indexStartArgumentIndex];
+            this.reset();
+            return indicesNestedStart + argument.replaceInsertToken(
+                indexStart - indicesNestedStart,
+                indexEnd - indicesNestedStart,
+                insertToken, toArgs, shorthand
+            );
+        }
 
-    //     const replacedText = new MathText(this.mathText.slice(indexStartTokenIndex, indexEndTokenIndex));
-    //     const newIndex = indexStart + insertTokens.getSize();
-    //     this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex, ...insertTokens.mathText);
-    //     return this.convertShorthands(newIndex, toArgs || false, replacedText);
-    // }
+        const replacedText = new MathText(this.mathText.slice(indexStartTokenIndex, indexEndTokenIndex));
+        const newIndex = indexStart + insertTokens.getSize() - 1;
+        this.reset();
+        this.mathText = this.mathText.toSpliced(indexStartTokenIndex, indexEndTokenIndex - indexStartTokenIndex, ...insertTokens.mathText);
+        return this.convertShorthands(newIndex, toArgs ? true : false, replacedText);
+    }
 
     /**
      * returns where the cursor index goes when you rpess the tab or shift tab key,
@@ -618,14 +733,34 @@ class MathText {
 /**
  * just makes a token for the sake of convenience
  */
-function mathToken(name: string, args: MathText[] = []): MathToken {
+export function mathToken(name: string, args: MathText[] = []): MathToken {
     return {
         name: name,
         args: args,
     };
 }
 
-function shorthand(tokens: MathToken[], output: MathToken | MathToken[]): Shorthand {
+/**
+ * makes mathtokens per char
+ */
+export function mathTokens(string: string): MathToken[] {
+    const tokens: MathToken[] = [];
+    for (const char of string.split("")) {
+        const mathToken: MathToken = {
+            name: char,
+            args: [],
+        };
+
+        tokens.push(mathToken);
+    }
+
+    return tokens;
+}
+
+/**
+ * make shorthand
+ */
+export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]): Shorthand {
     output = (isToken(output)) ? [<MathToken> output] : <MathToken[]> output;
     return {
         shorthand: new MathText(tokens),
@@ -637,246 +772,11 @@ function shorthand(tokens: MathToken[], output: MathToken | MathToken[]): Shorth
  * like mathToken, makes brackets for the sake of convenience
  * note that it auto inserts '\left' and '\right' soooo
  */
-function mathBrackets(open: string, close: string, argument: MathText) {
-    const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}\\!`,];
+export function mathBrackets(open: string, close: string, argument: MathText) {
+    const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}`,];
     return {
         name: `${open} ${close}`,
         args: [argument],
         brackets: brackets,
     };
-}
-
-export class MathInput {
-    public static defaultShorthands: Shorthand[] = [
-        shorthand([
-            mathToken('s'),
-            mathToken('q'),
-            mathToken('r'),
-            mathToken('t'),
-        ], mathToken('\\sqrt ', [new MathText([])])),
-        shorthand([mathToken('/')],
-            mathToken('\\frac ', [new MathText([]), new MathText([])])
-        ), shorthand([mathToken('^')], mathToken('^', [new MathText([])])),
-        shorthand([mathToken('\\_ ')], mathToken('_', [new MathText([])])),
-        shorthand([
-            mathToken('o'),
-            mathToken('o'),
-            mathToken('o'),
-        ], mathToken('\\infty ')),
-        shorthand([
-            mathToken('i'),
-            mathToken('n'),
-            mathToken('t'),
-        ], mathToken('\\int '))
-    ];
-
-    public static mathInput(element: HTMLElement): void {
-        MathInput.mathInputs.push(new MathInput(element));
-    }
-
-    private static mathInputs: MathInput[] = [];
-
-    private math: MathText = new MathText([
-        mathToken('\\frac', [new MathText([
-            mathToken('-'),
-            mathToken('b'),
-            mathToken('\\pm '),
-            mathToken('\\sqrt ', [new MathText([
-                mathToken('b'),
-                mathToken('^', [new MathText([
-                    mathToken('2')
-                ])]),
-                mathToken('-'),
-                mathToken('4'),
-                mathToken('a'),
-                mathToken('c'),
-            ])]),
-        ]), new MathText([
-            mathToken('2'),
-            mathToken('a'),
-        ])]),
-    ]);
-    
-    private element: HTMLElement;
-    private cursorIndex: number = 0;
-    private cursorRange: number = 0;
-    private cursorDirection: number = 0;
-    private renderingLatex: string = "";
-
-    public constructor(element: HTMLElement) {
-        this.math.setShorthands(MathInput.defaultShorthands);
-        this.element = element;
-        this.initElement();
-        this.updateString(true);
-    }
-
-    private initElement(): void {
-        this.element.contentEditable = "plaintext-only";
-        this.element.spellcheck = false;
-        this.element.addEventListener("keydown", (event) => {
-            event.preventDefault();
-            switch (event.key) {
-                case "ArrowLeft": {
-                    if (event.shiftKey) {
-                        if (this.cursorIndex === 0) break;
-                        let newSelection: [number, number];
-                        if (this.cursorDirection === 1) {
-                            this.cursorRange--;
-                            if (this.cursorRange === 0) this.collapseCursor();
-                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
-                        } else {
-                            this.cursorDirection = -1;
-                            this.cursorRange++;
-                            this.cursorIndex--;
-                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
-                        }
-
-                        this.cursorIndex = newSelection[0];
-                        this.cursorRange = newSelection[1] - newSelection[0];
-                    } else if (this.cursorDirection) {
-                        this.collapseCursor();
-                    } else {
-                        if (this.cursorIndex === 0) break;
-                        this.cursorIndex--;
-                    }
-                    
-                    this.updateString();
-                } break;
-                case "ArrowRight": {
-                    if (event.shiftKey) {
-                        if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
-                        let newSelection: [number, number];
-                        if (this.cursorDirection === -1) {
-                            this.cursorRange--;
-                            this.cursorIndex++;
-                            if (this.cursorRange === 0) this.collapseCursor();
-                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
-                        } else {
-                            this.cursorRange++;
-                            this.cursorDirection = 1;
-                            newSelection = this.math.expandSelection(this.cursorIndex, this.cursorIndex + this.cursorRange);
-                        }
-
-                        this.cursorIndex = newSelection[0];
-                        this.cursorRange = newSelection[1] - newSelection[0];
-                    } else if (this.cursorDirection) {
-                        this.cursorIndex = this.cursorIndex + this.cursorRange;
-                        this.collapseCursor();
-                    } else {
-                        if (this.cursorIndex + this.cursorRange === this.math.getSize() - 1) break;
-                        this.cursorIndex++;
-                    }
-                    
-                    this.updateString();
-                } break;
-                case "Backspace": {
-                    if (event.ctrlKey) {
-                        this.cursorIndex = 0;
-                        this.math = new MathText([]);
-                    } else this.cursorIndex = this.math.backspace(this.cursorIndex);
-                    this.updateString();
-                } break;
-                case "Delete": {
-                    if (this.cursorIndex === this.math.getSize() - 1) break;
-                    this.cursorIndex = this.math.backspace(this.cursorIndex + 1);
-                    this.updateString();
-                } break;
-                case "Tab": {
-                    if (event.shiftKey)
-                        this.cursorIndex = this.math.tabIndex(this.cursorIndex, "pre");
-                    else
-                        this.cursorIndex = this.math.tabIndex(this.cursorIndex, "post");
-                    this.updateString();
-                } break;
-                case "Space":
-                case " ": {
-                    this.cursorIndex = this.math.insertToken(this.cursorIndex, "\\ ");
-                    this.updateString();
-                } break;
-                default: {
-                    if (event.key.length === 1) {
-                        if (event.key === "*") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, "\\cdot ");
-                            this.updateString();
-                            return;
-                        } else if (event.key === "\\") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, `\\backslash `);
-                            this.updateString();
-                            return;
-                        } else if (event.key === "_" || event.key === "&" || event.key === "#" || event.key === "%" || event.key === " ") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, `\\${event.key} `);
-                            this.updateString();
-                            return;
-                        } else if (event.key === "(") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, mathBrackets('(', ')', new MathText([])), true);
-                            this.updateString();
-                            return;
-                        } else if (event.key === ")") {
-                            if (this.cursorIndex === this.math.getSize() - 1) return;
-                            this.cursorIndex++;
-                            this.updateString();
-                            return;
-                        } else if (event.key === "|") {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, mathBrackets('\\lvert ', '\\rvert ', new MathText([])), true);
-                            this.updateString();
-                            return;
-                        }
-
-                        const charCode = event.key.charCodeAt(0);
-                        if (33 <= charCode && charCode <= 127) {
-                            this.cursorIndex = this.math.insertToken(this.cursorIndex, `${event.key}`);
-                            this.updateString();
-                        }
-                    }
-                }
-            }
-        });
-
-        this.element.addEventListener("focus", (event) => {
-            event.preventDefault();
-            this.cursorIndex = 0;
-            this.cursorRange = 0;
-            this.updateString();
-        });
-
-        this.element.addEventListener("focusout", (event) => {
-            this.updateString(true);
-        });
-
-        this.updateString();
-    }
-
-    private collapseCursor(): void {
-        this.cursorRange = 0;
-        this.cursorDirection = 0;
-    }
-
-    // updates string AND cursor pos
-    public updateString(unfocus?: boolean): void {
-        // const cursorPos = 0;
-        const cursorPos = this.math.stringIndex(this.cursorIndex);
-
-
-        let mathString = this.math.toString();
-        if (!unfocus) {
-            if (this.cursorRange === 0)
-                mathString = mathString.slice(0, cursorPos) + "\\mkern -1mu \\raise{0.1ex}{\\vert} \\mkern -1mu" + mathString.slice(cursorPos);
-            else {
-                const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
-                // mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[blue, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);
-                mathString = mathString.slice(0, cursorPos) + String.raw`[` + mathString.slice(cursorPos, cursorEndPos) + ']' + mathString.slice(cursorEndPos);
-            }
-        }
-
-        // mathString = String.raw`six\bbox[blue, 1pt]{seven}`;
-        mathString = `\\[${mathString}\\]`;
-
-        if (mathString !== this.renderingLatex) {
-            this.renderingLatex = mathString;
-            this.element.textContent = mathString;
-        }
-        
-        if (!unfocus) this.element.focus();
-        mathjax.updateMath(this.element);
-    }
 }

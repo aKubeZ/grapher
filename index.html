@@ -9,6 +9,10 @@
     <body>
         <div id="maincontainer">
             <div id="funccontainer">
+                <div id="controls">
+                    <div class="button">update!</div>
+                    <!-- <div class="button">poopoo</div> -->
+                </div>
                 <div id="entrylist">
                     <!-- <div class="entry">$$e^x$$</div>
                     <div class="entry"></div> -->
@@ -22,7 +26,12 @@
         <!-- mathjax -->
         <script>
             MathJax = {
-                tex: {packages: {'[+]': ['bbox']}},
+                tex: {
+                    packages: {'[+]': ['bbox']},
+                    macros: {
+                        dd: "{\\,\\mathrm{d}}"
+                    }
+                },
                 loader: {
                     load: ['output/svg', '[tex]/bbox']
                 },

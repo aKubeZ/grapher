@@ -15,9 +15,9 @@
 
     loadScript(
         "main.js",
-        "entry.js",
-        "entrylist.js",
-        "mathjaxconfig/mathinput.js",
-        "mathjaxconfig/mathjax.js"
+        // "entry.js",
+        // "entrylist.js",
+        // "mathjaxconfig/mathinput.js",
+        // "mathjaxconfig/mathjax.js"
     )
 }

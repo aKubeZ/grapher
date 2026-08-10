@@ -45,7 +45,8 @@
     "allowJs": true,
   },
   "exclude": [
-    "mathquill/mathquill.js"
+    "mathquill/mathquill.js",
+    ".git"
   ],
   "include": [
     "src/"
