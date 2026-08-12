@@ -14,7 +14,8 @@ export class Graph {
     private functionGraphs: FunctionGraph[] = [];
     private gridAxesWidth: number = 2;
     private gridLineWidth: number = 1;
-    private minorGridLineColor: string = '#222';
+    private minorMinorGridLineColor: string = '#222';
+    private minorGridLineColor: string = '#444';
     private gridLineColor: string = '#777';
     private axesColor: string = '#fff';
 
@@ -64,7 +65,7 @@ export class Graph {
         })
 
         this.addFunctionGraph({
-            f: (x) => 1,
+            f: (x) => 1 / x,
             color: '#0f0',
             lineWidth: 3,
         })
@@ -98,6 +99,17 @@ export class Graph {
         };
     }
 
+    private setColor(colorCount: number) {
+            colorCount++;
+            if (colorCount === 100) {
+                this.context.fillStyle = this.gridLineColor;
+                return 0;
+            } else if (colorCount % 10 === 0) {
+                this.context.fillStyle = this.minorGridLineColor;
+            } else this.context.fillStyle = this.minorMinorGridLineColor;
+            return colorCount;
+    }
+
     private updateCanvas() {
         this.context.clearRect(
             0, 0, this.element.width, this.element.height
@@ -113,15 +125,13 @@ export class Graph {
         const gridLineYDistance =
             10 ** (1 - Math.floor(Math.log10(Math.abs(this.scaleY))));
 
+        console.log((endX - startX) / gridLineXDistance);
+        
         let colorCount = 0;
         for (let x = -gridLineXDistance; x >= startX; x -= gridLineXDistance) {
             const pixelX = Math.round(this.centerX + this.scaleX * x);
-            colorCount++;
-            if (colorCount === 10) {
-                colorCount = 0;
-                this.context.fillStyle = this.gridLineColor;
-            } else this.context.fillStyle = this.minorGridLineColor;
 
+            colorCount = this.setColor(colorCount);
             this.context.fillRect(
                 pixelX - (this.gridLineWidth >> 1),
                 0,
@@ -133,12 +143,7 @@ export class Graph {
         colorCount = 0;
         for (let x = gridLineXDistance; x <= endX; x += gridLineXDistance) {
             const pixelX = Math.round(this.centerX + this.scaleX * x);
-            colorCount++;
-            if (colorCount === 10) {
-                colorCount = 0;
-                this.context.fillStyle = this.gridLineColor;
-            } else this.context.fillStyle = this.minorGridLineColor;
-
+            colorCount = this.setColor(colorCount);
             this.context.fillRect(
                 pixelX - (this.gridLineWidth >> 1),
                 0,
@@ -150,12 +155,7 @@ export class Graph {
         colorCount = 0;
         for (let y = -gridLineYDistance; y >= startY; y -= gridLineYDistance) {
             const pixelY = Math.round(this.centerY + this.scaleY * y);
-            colorCount++;
-            if (colorCount === 10) {
-                colorCount = 0;
-                this.context.fillStyle = this.gridLineColor;
-            } else this.context.fillStyle = this.minorGridLineColor;
-
+            colorCount = this.setColor(colorCount);
             this.context.fillRect(
                 0,
                 pixelY - (this.gridLineWidth >> 1),
@@ -167,12 +167,7 @@ export class Graph {
         colorCount = 0;
         for (let y = gridLineYDistance; y <= endY; y += gridLineYDistance) {
             const pixelY = Math.round(this.centerY + this.scaleY * y);
-            colorCount++;
-            if (colorCount === 10) {
-                colorCount = 0;
-                this.context.fillStyle = this.gridLineColor;
-            } else this.context.fillStyle = this.minorGridLineColor;
-
+            colorCount = this.setColor(colorCount);
             this.context.fillRect(
                 0,
                 pixelY - (this.gridLineWidth >> 1),
@@ -197,7 +192,7 @@ export class Graph {
         );
 
         const dx = 1 / this.scaleX;
-        const differenceTolerance = 10;
+        const differenceTolerance = 100;
         for (const functionGraph of this.functionGraphs) {
             this.context.strokeStyle = functionGraph.color;
             this.context.lineWidth = functionGraph.lineWidth;
