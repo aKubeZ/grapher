@@ -7,7 +7,7 @@ export abstract class Operator {
     protected abstract inputTypes: string[][]; // array of types
     public operate(args: Value[]): Value { // func to make sure the types match
         for (let i = 0; i < this.inputTypes.length; i++) {
-            const inputType = <string[]> this.inputTypes[i];
+            const inputType = this.inputTypes[i] as string[];
             if (args.length !== inputType.length) continue;
             let useInput: boolean = true;
             for (let j = 0; j < args.length; j++) {

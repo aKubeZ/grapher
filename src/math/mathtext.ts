@@ -4,7 +4,7 @@ export type MathToken = {
     brackets?: [string, string];
 };
 
-export function isToken(object: any) {
+export function isToken(object: any): object is MathToken {
     return (
         "name" in object && typeof object.name === "string"
         && "args" in object && Array.isArray(object.args) && (object.args.length === 0 || object.args[0] instanceof MathText)
@@ -38,13 +38,13 @@ export class MathText {
     private equals(other: MathText): boolean {
         if (this.mathText.length !== other.mathText.length) return false;
         for (let i = 0; i < this.mathText.length; i++) {
-            const thisToken = <MathToken> this.mathText[i];
-            const otherToken = <MathToken> other.mathText[i];
+            const thisToken = this.mathText[i] as MathToken;
+            const otherToken = other.mathText[i] as MathToken;
             if (thisToken.name !== otherToken.name) return false;
             if (thisToken.args.length !== otherToken.args.length) return false;
             for (let j = 0; j < thisToken.args.length; j++) {
-                const thisArgument = <MathText> thisToken.args[j];
-                const otherArgument = <MathText> otherToken.args[j];
+                const thisArgument = thisToken.args[j] as MathText;
+                const otherArgument = otherToken.args[j] as MathText;
                 if (!thisArgument.equals(otherArgument)) return false;
             }
         }
@@ -174,7 +174,7 @@ export class MathText {
         
         let indexCount = 0;
         for (let i = 0; i < this.mathText.length; i++) {
-            const token = <MathToken> this.mathText[i];
+            const token = this.mathText[i] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === index) {
@@ -187,7 +187,7 @@ export class MathText {
             let flatten = false;
             let flattenNewIndex: number | undefined;
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
                 if (index === argumentStartIndex) {
                     flatten = true;
                     flattenNewIndex = index - j - 1;
@@ -209,7 +209,7 @@ export class MathText {
                     tokenList = tokenList.concat(argument.mathText);
                 this.mathText = this.mathText.toSpliced(i, 1, ...tokenList);
                 this.reset();
-                return <number> flattenNewIndex;
+                return flattenNewIndex as number;
             }
             
             if (indexCount === index) {
@@ -240,7 +240,7 @@ export class MathText {
 
         mainLoop:
         for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
-            const token = <MathToken> this.mathText[tokenIndex];
+            const token = this.mathText[tokenIndex] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === indexStart) {
@@ -254,7 +254,7 @@ export class MathText {
             }
 
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (!indexStarted && indexCount + argument.getSize() > indexStart) {
                     indexStartTokenIndex = tokenIndex;
@@ -290,8 +290,8 @@ export class MathText {
         }
 
         if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
-            const token = <MathToken> this.mathText[indexStartTokenIndex];
-            const argument = <MathText> token.args[indexStartArgumentIndex];
+            const token = this.mathText[indexStartTokenIndex] as MathToken;
+            const argument = token.args[indexStartArgumentIndex] as MathText;
             this.reset();
             return indicesNestedStart + argument.delete(
                 indexStart - indicesNestedStart,
@@ -352,7 +352,7 @@ export class MathText {
         let indexCount = 0;
         let tokenIndex = 0;
         for (let i = 0; i < this.mathText.length; i++) {
-            const token = <MathToken> this.mathText[i];
+            const token = this.mathText[i] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === index) {
@@ -361,7 +361,7 @@ export class MathText {
             }
 
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (indexCount + argument.getSize() > index) {
                     this.reset();
@@ -381,9 +381,9 @@ export class MathText {
         tokenIndex++;
 
         for (let i = 0; i < this.shorthands.length; i++) {
-            const shorthand = <MathText> this.shorthands[i]?.shorthand;
+            const shorthand = this.shorthands[i]?.shorthand as MathText;
             const startIndex = tokenIndex - shorthand.mathText.length;
-            const value = <MathText> this.shorthands[i]?.value();
+            const value = this.shorthands[i]?.value() as MathText;
             if (startIndex < 0) continue;
             const potentialShorthand = new MathText(this.mathText.slice(startIndex, tokenIndex));
             if (potentialShorthand.equals(shorthand)) {
@@ -444,8 +444,8 @@ export class MathText {
         if (typeof insertToken === "string")
             insertToken = new MathText([mathToken(insertToken)]);
         if (isToken(insertToken))
-            insertToken = new MathText([<MathToken> insertToken]);
-        const insertTokens = <MathText> insertToken;
+            insertToken = new MathText([insertToken]);
+        const insertTokens = insertToken as MathText;
         
         if (insertTokens.equals(new MathText([mathToken('^')])) && index === 0) return index;
 
@@ -460,7 +460,7 @@ export class MathText {
         
         let indexCount = 0;
         for (let i = 0; i < this.mathText.length; i++) {
-            const token = <MathToken> this.mathText[i];
+            const token = this.mathText[i] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === index) {
@@ -472,7 +472,7 @@ export class MathText {
 
             let argumentStartIndex = indexCount + 0;
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (indexCount + argument.getSize() > index) {
                     this.reset();
@@ -503,10 +503,10 @@ export class MathText {
         if (typeof insertToken === "string")
             insertToken = new MathText([mathToken(insertToken)]);
         if (isToken(insertToken))
-            insertToken = new MathText([<MathToken> insertToken]);
+            insertToken = new MathText([insertToken]);
 
         
-        const insertTokens = <MathText> insertToken;
+        const insertTokens = insertToken as MathText;
 
         let indexCount = 0;
         let tokenIndex = 0;
@@ -523,7 +523,7 @@ export class MathText {
 
         mainLoop:
         for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
-            const token = <MathToken> this.mathText[tokenIndex];
+            const token = this.mathText[tokenIndex] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === indexStart) {
@@ -537,7 +537,7 @@ export class MathText {
             }
 
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (!indexStarted && indexCount + argument.getSize() > indexStart) {
                     indexStartTokenIndex = tokenIndex;
@@ -573,8 +573,8 @@ export class MathText {
         }
 
         if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
-            const token = <MathToken> this.mathText[indexStartTokenIndex];
-            const argument = <MathText> token.args[indexStartArgumentIndex];
+            const token = this.mathText[indexStartTokenIndex] as MathToken;
+            const argument = token.args[indexStartArgumentIndex] as MathText;
             this.reset();
             return indicesNestedStart + argument.replaceInsertToken(
                 indexStart - indicesNestedStart,
@@ -601,7 +601,7 @@ export class MathText {
         
         let indexCount = 0;
         for (let i = 0; i < this.mathText.length; i++) {
-            const token = <MathToken> this.mathText[i];
+            const token = this.mathText[i] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === index) {
@@ -610,7 +610,7 @@ export class MathText {
 
             let argumentSizeCount = 0;
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (indexCount + argument.getSize() > index) {
                     return argument.tabIndex(
@@ -667,7 +667,7 @@ export class MathText {
 
         mainLoop:
         for (tokenIndex = 0; tokenIndex < this.mathText.length; tokenIndex++) {
-            const token = <MathToken> this.mathText[tokenIndex];
+            const token = this.mathText[tokenIndex] as MathToken;
             indexCount++;
 
             if (token.args.length === 0 && indexCount === indexStart) {
@@ -682,7 +682,7 @@ export class MathText {
 
             const tokenStartIndex = indexCount;
             for (let j = 0; j < token.args.length; j++) {
-                const argument = <MathText> token.args[j];
+                const argument = token.args[j] as MathText;
 
                 if (!indexStarted && indexCount + argument.getSize() > indexStart) {
                     indexStartTokenIndex = tokenIndex;
@@ -720,8 +720,8 @@ export class MathText {
         }
 
         if (indexStartNested && indexEndNested && indexStartTokenIndex === indexEndTokenIndex && indexStartArgumentIndex === IndexEndArgumentIndex) {
-            const token = <MathToken> this.mathText[indexStartTokenIndex];
-            const argument = <MathText> token.args[indexStartArgumentIndex];
+            const token = this.mathText[indexStartTokenIndex] as MathToken;
+            const argument = token.args[indexStartArgumentIndex] as MathText;
             const relativeIndices = argument.expandSelection(indexStart - indicesNestedStart, indexEnd - indicesNestedStart);
             return [indicesNestedStart + relativeIndices[0], indicesNestedStart + relativeIndices[1]];
         }
@@ -761,7 +761,7 @@ export function mathTokens(string: string): MathToken[] {
  * make shorthand
  */
 export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]): Shorthand {
-    output = (isToken(output)) ? [<MathToken> output] : <MathToken[]> output;
+    output = (isToken(output)) ? [output] : output;
     return {
         shorthand: new MathText(tokens),
         value: () => new MathText(output).deepCopy()

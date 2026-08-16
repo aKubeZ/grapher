@@ -10,7 +10,7 @@ export function init() {
     if (!canvas) throw new Error("Canvas element not found.");
     const graph = new Grapher(canvas);
 
-    const updateButton = <HTMLButtonElement> document.getElementById("update");
+    const updateButton = document.getElementById("update") as HTMLButtonElement;
     if (!updateButton) throw new Error("Update button not found.");
     updateButton.addEventListener('mousedown', () => {
 

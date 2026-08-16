@@ -114,8 +114,8 @@ export class Grapher {
     constructor(element: HTMLElement) {
         if (!element) throw new Error("Graph not found");
         if (element.nodeName !== "CANVAS") throw new Error("Graph element not canvas");
-        this.element = <HTMLCanvasElement> element;
-        this.context = <CanvasRenderingContext2D> this.element.getContext('2d');
+        this.element = element as HTMLCanvasElement;
+        this.context = this.element.getContext('2d') as CanvasRenderingContext2D;
         const rect = this.element.getBoundingClientRect();
         this.centerX = Math.round(rect.width / 2);
         this.centerY = Math.round(rect.height / 2);

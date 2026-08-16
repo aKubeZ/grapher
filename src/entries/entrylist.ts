@@ -16,7 +16,7 @@ export class EntryList {
         if (entryElements.length == 0) this.clearEntries();
         else {
             entryElements.forEach((entryElement) => {
-                this.entries.push(new Entry(<HTMLElement> entryElement, this));
+                this.entries.push(new Entry(entryElement as HTMLElement, this));
             });
         }
     }

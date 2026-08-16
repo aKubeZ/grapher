@@ -25,7 +25,7 @@ export class Entry {
         if (!element) throw new Error("Entry not found");
         if (element.nodeName !== "DIV") throw new Error("Entry element not div");
         
-        this.element = <HTMLDivElement> element;
+        this.element = element as HTMLDivElement;
         this.entryList = entryList;
 
         this.initEntry();

@@ -10,7 +10,7 @@ export class Addition extends InOperator {
     ];
     protected localOperate(args: Value[], inputType: number): Value {
         switch (inputType) {
-            case 0: return (<NumberValue> args[0]).add(<NumberValue> args[1]);
+            case 0: return (args[0] as NumberValue).add(args[1] as NumberValue);
             default: throw new Error("how the hell did this happen");
         }
     }
