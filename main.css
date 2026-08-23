@@ -27,6 +27,7 @@ body, html {
     overflow-y: hidden;
     overflow-x: auto;
     flex-shrink: 0;
+    user-select: none;
 
     /* width: auto; */
     width: calc(100% - 5px);

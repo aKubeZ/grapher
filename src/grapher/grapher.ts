@@ -156,7 +156,7 @@ export class Grapher {
             this.update();
         });
 
-        this.addGraph(new FunctionGraph(Math.sin, '#0f94', 2));
+        this.addGraph(new FunctionGraph(Math.sin, '#0f9', 2));
         this.resizeCanvas();
         this.update();
     }

@@ -11,8 +11,6 @@ export function isToken(object: any): object is MathToken {
     );
 }
 
-export type MathTextData = MathToken[];
-
 /**
  * shorthands, like s,q,r,t -> \sqrt
  * mathtext to a mathtext supplier yay
@@ -20,7 +18,7 @@ export type MathTextData = MathToken[];
 export type Shorthand = { shorthand: MathText, value: () => MathText };
 
 export class MathText {
-    private mathText: MathTextData;
+    private mathText: MathToken[];
     private mathString: string | undefined;
     private mathSize: number | undefined;
     private shorthands: Shorthand[] = [];
@@ -28,9 +26,14 @@ export class MathText {
     private static superscriptMathText = new MathText([mathToken('^', [new MathText([])])]);
     private static subscriptMathText = new MathText([mathToken('_', [new MathText([])])]);
 
-    constructor(mathText: MathTextData) {
+    constructor(mathText: MathToken[]) {
         this.mathText = mathText;
     }
+
+    /**
+     * returns the math text array
+     */
+    public getMathTokens() { return this.mathText; }
 
     /**
      * note that this does not compare brackets
@@ -447,7 +450,14 @@ export class MathText {
             insertToken = new MathText([insertToken]);
         const insertTokens = insertToken as MathText;
         
-        if (insertTokens.equals(new MathText([mathToken('^')])) && index === 0) return index;
+        if (
+            index === 0 &&
+            insertTokens.getMathTokens().length === 1 &&
+            (
+                insertTokens.getMathTokens()[0]?.name === "^" ||
+                insertTokens.getMathTokens()[0]?.name === "_"
+            )
+        ) return 0;
 
         const indexDifference = toArgs ? 1 : insertTokens.getSize() - 1;
 
@@ -764,7 +774,7 @@ export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]):
     output = (isToken(output)) ? [output] : output;
     return {
         shorthand: new MathText(tokens),
-        value: () => new MathText(output).deepCopy()
+        value: () => new MathText(output as MathToken[]).deepCopy()
     }
 }
 

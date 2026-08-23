@@ -1,9 +1,10 @@
+import { type Value } from "../value.js";
+
 /**
  * real/cmplx numbers, yea very self explanatory
  */
-import { type Value } from "../value";
-
 export class NumberValue implements Value {
+    public static type: string = "number";
     private realValue: number;
     private imagValue: number;
     constructor(realValue: number, imagValue?: number) {
@@ -21,49 +22,5 @@ export class NumberValue implements Value {
 
     getType(): string {
         return "number";
-    }
-
-    conjugate() {
-        return new NumberValue(
-            this.realValue,
-            -this.imagValue
-        );
-    }
-
-    add(value: NumberValue) {
-        return new NumberValue(
-            this.realValue + value.real(),
-            this.imagValue + value.imag()
-        );
-    }
-
-    subtract(value: NumberValue) {
-        return new NumberValue(
-            this.realValue - value.real(),
-            this.imagValue - value.imag()
-        );
-    }
-
-    multiply(value: NumberValue) {
-        return new NumberValue(
-            this.realValue * value.real() - this.imagValue * value.imag(),
-            this.realValue * value.imag() + this.imagValue * value.real(),
-        );
-    }
-
-    divide(value: NumberValue) {
-        const multiplier = 1 / ((value.real() ** 2) + (value.imag() ** 2));
-        return new NumberValue(
-            (this.realValue * value.real() + this.imagValue * value.imag()) * multiplier,
-            (this.imagValue * value.real() - this.realValue * value.imag()) * multiplier
-        );
-    }
-
-    exp() {
-        const multiplier = Math.exp(this.realValue);
-        return new NumberValue(
-            Math.cos(this.imagValue) * multiplier,
-            Math.sin(this.imagValue) * multiplier
-        );
     }
 }

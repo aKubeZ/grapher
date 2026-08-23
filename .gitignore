@@ -1,1 +1,4 @@
 js/**
+# lib/**
+package-lock.json
+package.json

@@ -1,5 +1,6 @@
 import { EntryList } from "./entrylist.js";
 import { MathInput } from "../math/mathinput.js";
+import type { MathText } from "../math/mathtext.js";
 
 export class Entry {
     private static entries: Entry[] = [];
@@ -21,6 +22,7 @@ export class Entry {
 
     private element: HTMLDivElement;
     private entryList: EntryList | undefined;
+    private mathInput: MathInput;
     constructor(element: HTMLElement, entryList: EntryList | undefined) {
         if (!element) throw new Error("Entry not found");
         if (element.nodeName !== "DIV") throw new Error("Entry element not div");
@@ -29,6 +31,7 @@ export class Entry {
         this.entryList = entryList;
 
         this.initEntry();
+        this.mathInput = MathInput.mathInput(this.element);
         Entry.entries.push(this);
     }
 
@@ -73,7 +76,10 @@ export class Entry {
             }
         });
         
-        MathInput.mathInput(this.element);
+    }
+
+    public getMathText(): MathText {
+        return this.mathInput.getMathText();
     }
 
     delete(): undefined {
@@ -88,5 +94,4 @@ export class Entry {
     focus(): undefined { Entry.focusElement(this.element) }
     setEntryList(entryList: EntryList): undefined { this.entryList = entryList; }
     getElement(): HTMLDivElement { return this.element; }
-    getText(): string { return this.element.textContent; }
 }

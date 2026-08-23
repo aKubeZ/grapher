@@ -14,7 +14,7 @@ export class MathInput {
         mt.shorthand(mt.mathTokens('_'), mt.mathToken('_', [new mt.MathText([])])),
         mt.shorthand(mt.mathTokens('ooo'), mt.mathToken('\\infty ')),
         mt.shorthand(mt.mathTokens('dd'), mt.mathToken('\\dd ')),
-        mt.shorthand(mt.mathTokens('int'), mt.mathToken('\\int ')),
+        mt.shorthand(mt.mathTokens('int'), mt.mathToken('\\dint ', [new mt.MathText([]), new mt.MathText([])])),
         mt.shorthand(mt.mathTokens('!=='), mt.mathToken('\\neq ')),
         mt.shorthand(mt.mathTokens('<='), mt.mathToken('\\leq ')),
         mt.shorthand(mt.mathTokens('>='), mt.mathToken('\\geq ')),
@@ -107,8 +107,10 @@ export class MathInput {
         mt.shorthand(mt.mathTokens('prod'), mt.mathToken('\\prod ')),
     ];
 
-    public static mathInput(element: HTMLElement): void {
-        MathInput.mathInputs.push(new MathInput(element));
+    public static mathInput(element: HTMLElement): MathInput {
+        const mathInput = new MathInput(element);
+        MathInput.mathInputs.push(mathInput);
+        return mathInput;
     }
 
     private static mathInputs: MathInput[] = [];
@@ -332,5 +334,9 @@ export class MathInput {
         
         if (!unfocus) this.element.focus();
         mj.updateMath(this.element);
+    }
+
+    public getMathText(): mt.MathText {
+        return this.math;
     }
 }

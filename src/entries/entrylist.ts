@@ -1,3 +1,4 @@
+import type { MathText } from "../math/mathtext.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {
@@ -19,6 +20,18 @@ export class EntryList {
                 this.entries.push(new Entry(entryElement as HTMLElement, this));
             });
         }
+    }
+
+    /**
+     * returns all mathtexts of all entries in order.
+     */
+    getAllMath(): MathText[] {
+        const mathTexts: MathText[] = [];
+        for (const entry of this.entries) {
+            mathTexts.push(entry.getMathText());
+        }
+
+        return mathTexts;
     }
 
     /**
