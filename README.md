@@ -1,6 +1,6 @@
 # grapher
 
-todo: mathquill?????
+<!-- todo: mathquill?????
 also mathquill uses times new roman as a default font fun fact
 
 heres the file structure (also i accidentally did git rm -rf . without committing lmfao):
@@ -29,4 +29,4 @@ wait negation is just a preoperator
 TODO: fix the number system???
 like i want cmplx to extend reals and reals to extend cmplx simul.
 ummmm
-yea laso make everything like make it yk
+yea laso make everything like make it yk -->
