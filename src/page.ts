@@ -18,6 +18,8 @@ export function init() {
     if (!updateButton) throw new Error("Update button not found.");
     updateButton.addEventListener('mousedown', () => {
         const mathTexts = entryList.getAllMath();
-        for (const math of mathTexts) parser.parse(math);
+        for (const math of mathTexts) {
+            parser.parse(math);
+        }
     });
 }

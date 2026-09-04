@@ -1,15 +1,18 @@
 import { MathText, type MathToken } from "../math/mathtext.js";
 import type { Operator } from "./operator.js";
-import type { NumberValue } from "./values/number.js";
+import type { Value } from "./value.js";
 
 /**
  * The thing parse returns if not a number
  */
-type ParsedMath = NumberValue | {
+type ParsedMath = Value | {
     operator: Operator;
     args: ParsedMath[];
 };
 
+/**
+ * A character/variable/something in a string of math
+ */
 type Token = {
     /**
      * name of the token
@@ -43,6 +46,11 @@ export class Parser {
         this.operators = operators;
     }
 
+    /**
+     * Converts a MathText object into a list of Token, subscripts merge with the token before it.
+     * @param math the input MathText object
+     * @returns the output Token[]
+     */
     mathToTokens(math: MathText): Token[] {
         const tokens: Token[] = [];
         let prevMathTokenMerges: boolean = false;
@@ -71,10 +79,14 @@ export class Parser {
         return tokens;
     }
 
+    /**
+     * intends to parse a MathText object to a ParsedMath object;;
+     * @param inMathText the input MathText object
+     * @returns the ParsedMath object
+     */
     parse(inMathText: MathText): ParsedMath {
         const tokens = this.mathToTokens(inMathText);
         console.log(tokens);
-        
 
         // placeholder
         return (undefined as unknown) as ParsedMath;

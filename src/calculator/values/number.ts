@@ -5,8 +5,8 @@ import { type Value } from "../value.js";
  */
 export class NumberValue implements Value {
     public static type: string = "number";
-    private realValue: number;
-    private imagValue: number;
+    protected realValue: number;
+    protected imagValue: number;
     constructor(realValue: number, imagValue?: number) {
         this.realValue = realValue;
         this.imagValue = imagValue ? imagValue : 0;
@@ -21,6 +21,6 @@ export class NumberValue implements Value {
     }
 
     getType(): string {
-        return "number";
+        return NumberValue.type;
     }
 }

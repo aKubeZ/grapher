@@ -781,6 +781,7 @@ export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]):
 /**
  * like mathToken, makes brackets for the sake of convenience
  * note that it auto inserts '\left' and '\right' soooo
+ * wait i just realized this is redundant bc we can just make custom commands that makes brackets for us oh well im too tired for ts
  */
 export function mathBrackets(open: string, close: string, argument: MathText) {
     const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}`,];
