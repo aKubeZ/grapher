@@ -31,7 +31,12 @@
                     packages: {'[+]': ['bbox']},
                     macros: {
                         dd: "{\\,\\mathrm{d}}",
-                        dint: ["{\\int_{#1}^{#2}}", 2]
+                        dint: ["{\\int_{#1}^{#2}}", 2],
+                        negskip: "\\hskip -2mu",
+                        paren: ["{\\negskip \\left( #1 \\right) \\negskip}", 1],
+                        brack: ["{\\left[ #1 \\right]}", 1],
+                        brace: ["{\\left\\{ #1 \\right\\}}", 1],
+                        verts: ["{\\left\\lvert #1 \\right\\rvert}", 1],
                     }
                 },
                 loader: {

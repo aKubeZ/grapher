@@ -4,10 +4,14 @@ import * as mt from "./mathtext.js";
 export class MathInput {
     public static defaultShorthands: mt.Shorthand[] = [
         // VERY IMPROTATN STUFF
-        mt.shorthand(mt.mathTokens('('), mt.mathBrackets('(', ')', new mt.MathText([]))),
-        mt.shorthand(mt.mathTokens('['), mt.mathBrackets('[', ']', new mt.MathText([]))),
-        mt.shorthand([mt.mathToken('\\{ ')], mt.mathBrackets('\\{ ', '\\} ', new mt.MathText([]))),
-        mt.shorthand(mt.mathTokens('|'), mt.mathBrackets('\\lvert ', '\\rvert ', new mt.MathText([]))),
+        // mt.shorthand(mt.mathTokens('('), mt.mathBrackets('(', ')', new mt.MathText([]))),
+        // mt.shorthand(mt.mathTokens('['), mt.mathBrackets('[', ']', new mt.MathText([]))),
+        // mt.shorthand([mt.mathToken('\\{ ')], mt.mathBrackets('\\{ ', '\\} ', new mt.MathText([]))),
+        // mt.shorthand(mt.mathTokens('|'), mt.mathBrackets('\\lvert ', '\\rvert ', new mt.MathText([]))),
+        mt.shorthand(mt.mathTokens('('), mt.mathToken('\\paren ', [new mt.MathText([])])),
+        mt.shorthand(mt.mathTokens('['), mt.mathToken('\\brack ', [new mt.MathText([])])),
+        mt.shorthand([mt.mathToken('\\{ ')], mt.mathToken('\\brace ', [new mt.MathText([])])),
+        mt.shorthand(mt.mathTokens('|'), mt.mathToken('\\verts ', [new mt.MathText([])])),
         mt.shorthand(mt.mathTokens('sqrt'), mt.mathToken('\\sqrt ', [new mt.MathText([])])),
         mt.shorthand(mt.mathTokens('/'), mt.mathToken('\\frac ', [new mt.MathText([]), new mt.MathText([])])),
         mt.shorthand(mt.mathTokens('^'), mt.mathToken('^', [new mt.MathText([])])),

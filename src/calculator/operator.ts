@@ -1,15 +1,22 @@
-import type { MathText } from "../math/mathtext.js";
 import { type Value } from "./value.js";
+
+/*
+operator types:
+    inoperators a + b
+    preoperators sin(a)
+    postoperators a!
+    argoperators |{a}|
+    preargoperators a^{b}
+*/
 
 /**
  * Abstract class for operators, to be extended by different operator types.
  */
 export abstract class Operator {
-
     /**
      * The math text that triggers this operator.
      */
-    protected abstract triggers: MathText[];
+    protected abstract tokenLists: string[][];
 
     /**
      * The name of this operator
@@ -78,5 +85,11 @@ export abstract class Operator {
      * Return the math text triggers for this operator.
      * @returns operator triggers.
      */
-    getTriggers(): MathText[] { return this.triggers; }
+    getTokenLists(): string[][] { return this.tokenLists; }
+
+    /**
+     * Return the rank of this operator.
+     * @returns the rank
+     */
+    getRank(): number { return this.rank; }
 }

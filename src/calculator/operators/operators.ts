@@ -27,14 +27,28 @@ const LIST_SEPARATOR = 31;
 // REAL/COMPLEX ARITHMETIC
 const ADD_SUB = 40;
 const TRIGONOMETRY = 41;
-const PROD_DIV = 42;
-const SUPERSCRIPT = 43
+const MULT_DIV = 42;
+const SUPERSCRIPT = 44;
+
+export const blankOperator =
+    new InOperator("MULTIPLICATION", MULT_DIV, [[""]], [NumberPair], (args: Value[], inputType: number) => {
+        switch (inputType) {
+            case 0: {
+                const [a, b] = args as [NumberValue, NumberValue];
+                return new NumberValue(
+                    a.real() * b.real() - a.imag() * b.imag(),
+                    a.real() * b.imag() + a.imag() * b.real()
+                );
+            }
+            default: throw new Error("Input invalid somehow.");
+        }
+    });
 
 /**
  * A list of standard operators.
  */
 export const operators = [
-    new InOperator("ADDITION", ADD_SUB, [new MathText([mathToken("+")])], [NumberPair], (args: Value[], inputType: number) => {
+    new InOperator("ADDITION", ADD_SUB, [["+"]], [NumberPair], (args: Value[], inputType: number) => {
         switch (inputType) {
             case 0: {
                 const [a, b] = args as [NumberValue, NumberValue];
@@ -46,7 +60,7 @@ export const operators = [
             default: throw new Error("Input invalid somehow.");
         }
     }),
-    new InOperator("SUBTRACTION", ADD_SUB, [new MathText([mathToken("-")])], [NumberPair], (args: Value[], inputType: number) => {
+    new InOperator("SUBTRACTION", ADD_SUB, [["-"]], [NumberPair], (args: Value[], inputType: number) => {
         switch (inputType) {
             case 0: {
                 const [a, b] = args as [NumberValue, NumberValue];

@@ -1,7 +1,6 @@
 export type MathToken = {
     name: string;
     args: MathText[];
-    brackets?: [string, string];
 };
 
 export function isToken(object: any): object is MathToken {
@@ -80,7 +79,6 @@ export class MathText {
                 name: token.name,
                 args: newArgs,
             }
-            if (token.brackets) newToken['brackets'] = token.brackets;
             newMathText.push(newToken);
         }
 
@@ -124,9 +122,9 @@ export class MathText {
         this.mathString = "";
 
         for (const token of this.mathText) {
-            if (!token.brackets) this.mathString += token.name;
-            const argumentOpen = token.brackets ? token.brackets[0] : "{";
-            const argumentClose = token.brackets ? token.brackets[1] : "}";
+            this.mathString += token.name;
+            const argumentOpen = "{";
+            const argumentClose = "}";
             for (const argument of token.args)
                 this.mathString += `${argumentOpen}${argument.toString()}${argumentClose}`;
         }
@@ -144,11 +142,11 @@ export class MathText {
         let indexCount = 0;
 
         for (const token of this.mathText) {
-            if (!token.brackets) lengthCount += token.name.length;
+            lengthCount += token.name.length;
             indexCount++;
 
-            const argumentOpen = token.brackets ? token.brackets[0].length : 1;
-            const argumentClose = token.brackets ? token.brackets[1].length : 1;
+            const argumentOpen = 1;
+            const argumentClose = 1;
             if (token.args.length === 0 && indexCount === index) return lengthCount;
 
             for (const argument of token.args) {
@@ -778,16 +776,16 @@ export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]):
     }
 }
 
-/**
- * like mathToken, makes brackets for the sake of convenience
- * note that it auto inserts '\left' and '\right' soooo
- * wait i just realized this is redundant bc we can just make custom commands that makes brackets for us oh well im too tired for ts
- */
-export function mathBrackets(open: string, close: string, argument: MathText) {
-    const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}`,];
-    return {
-        name: `${open} ${close}`,
-        args: [argument],
-        brackets: brackets,
-    };
-}
+// /**
+//  * like mathToken, makes brackets for the sake of convenience
+//  * note that it auto inserts '\left' and '\right' soooo
+//  * wait i just realized this is redundant bc we can just make custom commands that makes brackets for us oh well im too tired for ts
+//  */
+// export function mathBrackets(open: string, close: string, argument: MathText) {
+//     const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}`,];
+//     return {
+//         name: `${open} ${close}`,
+//         args: [argument],
+//         brackets: brackets,
+//     };
+// }
