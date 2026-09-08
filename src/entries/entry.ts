@@ -1,6 +1,6 @@
 import { EntryList } from "./entrylist.js";
-import { MathInput } from "../math/mathinput.js";
-import type { MathText } from "../math/mathtext.js";
+import { MathInput } from "../math/oldmath/mathinput.js";
+import type { MathText } from "../math/oldmath/mathtext.js";
 
 export class Entry {
     private static entries: Entry[] = [];

@@ -1,5 +1,5 @@
-import { MathText, type MathToken } from "../math/mathtext.js";
-import type { Operator } from "./operator.js";
+import { MathText, type MathToken } from "../math/oldmath/mathtext.js";
+import type { Operator } from "./operators/operator.js";
 import { ArgOperator } from "./operators/argoperator.js";
 import { InOperator } from "./operators/inoperator.js";
 import { PostOperator } from "./operators/postoperator.js";
@@ -75,6 +75,10 @@ export class Parser {
         "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."
     ];
 
+    private appenders: string[] = [
+        "_"
+    ]
+
     /**
      * parsing will discard these
      */
@@ -117,10 +121,11 @@ export class Parser {
         let foundDecimal = false;
         for (let i = 0; i < input.length; i++) {
             const char = input.charCodeAt(i);
+            console.log(char);
             if (char === 0x2e) { // period
                 if (foundDecimal) return; // is not a number when there are 2 decimals
                 foundDecimal = true;
-            } else if (char < 0x13 || char > 0x39) // if char is not a number
+            } else if (char < 0x30 || char > 0x39) // if char is not a number
                 return;
         }
 
@@ -162,10 +167,13 @@ export class Parser {
         for (let i = 0; i < math.getMathTokens().length; i++) {
             const mathToken = math.getMathTokens()[i] as MathToken;
             
-            if (mathToken.name in this.removers) continue;
+            if (this.removers.includes(mathToken.name)) {
+                prevMathTokenMerges = false;
+                continue;
+            }
 
             const mathTokenMerges = (this.numbers.includes(mathToken.name));
-            const mathTokenAppends = (mathToken.name === "_");
+            const mathTokenAppends = (this.appenders.includes(mathToken.name));
 
             if (prevMathTokenMerges && mathTokenMerges) {
                 const lastNameArg = nameArgList[nameArgList.length - 1] as NameArg;
@@ -197,6 +205,7 @@ export class Parser {
             let tokenWillAllowBlankOperator!: boolean;
             let tokenType!: TokenType;
             let tokenValue!: number | string | Operator;
+            // console.log(numberValue);
             if (typeof numberValue === 'number') {
                 tokenAllowsBlankOperator = true;
                 tokenWillAllowBlankOperator = true;
@@ -206,7 +215,8 @@ export class Parser {
                 // tries to find an operator to add
                 let operatorFound = false;
                 for (const operator of this.operators) {
-                    if (operator.getName() === nameArg.name) {
+                    // console.log(operator.getTokens());
+                    if (operator.getTokens().includes(nameArg.name)) {
                         tokenAllowsBlankOperator = this.preSymbolLikeOperator.includes(operator.getType());
                         tokenWillAllowBlankOperator = this.postSymbolLikeOperator.includes(operator.getType());
                         tokenType = TokenType.OPERATOR;

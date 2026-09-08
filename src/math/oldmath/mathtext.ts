@@ -1,3 +1,14 @@
+/*
+man i really need to improve the code structure for this,
+like wtf is this???
+
+ill js plan some stuff here so
+each Entry has an EntryMath
+each EntryMath implments MathInput and has a MathToken[]
+MathInput is an interface with commands that correspond to some keystrokes
+EntryMath also has a 
+*/
+
 export type MathToken = {
     name: string;
     args: MathText[];
@@ -22,6 +33,7 @@ export class MathText {
     private mathSize: number | undefined;
     private shorthands: Shorthand[] = [];
     private firstEmptyArgument: number | undefined;
+    private static unnestables: string[] | undefined = ["\\mathrm ", "\\mathbf ", "\\mathbb ", "\\mathfrak", "\\mathcal "];
     private static superscriptMathText = new MathText([mathToken('^', [new MathText([])])]);
     private static subscriptMathText = new MathText([mathToken('_', [new MathText([])])]);
 
@@ -654,7 +666,6 @@ export class MathText {
      * expands selection, like so
      * (a[bc)] => [(abc)]
      */
-
     public expandSelection(indexStart: number, indexEnd: number): [number, number] {
         if (indexStart === indexEnd) return [indexStart, indexEnd];
         
@@ -775,17 +786,3 @@ export function shorthand(tokens: MathToken[], output: MathToken | MathToken[]):
         value: () => new MathText(output as MathToken[]).deepCopy()
     }
 }
-
-// /**
-//  * like mathToken, makes brackets for the sake of convenience
-//  * note that it auto inserts '\left' and '\right' soooo
-//  * wait i just realized this is redundant bc we can just make custom commands that makes brackets for us oh well im too tired for ts
-//  */
-// export function mathBrackets(open: string, close: string, argument: MathText) {
-//     const brackets: [string, string] = [`\\!\\left${open}`, `\\right${close}`,];
-//     return {
-//         name: `${open} ${close}`,
-//         args: [argument],
-//         brackets: brackets,
-//     };
-// }

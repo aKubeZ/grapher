@@ -1,4 +1,4 @@
-import { type Value } from "./value.js";
+import { type Value } from "../value.js";
 
 /*
 operator types:
@@ -16,7 +16,7 @@ export abstract class Operator {
     /**
      * The math text that triggers this operator.
      */
-    protected abstract tokenLists: string[][];
+    protected abstract tokens: string[];
 
     /**
      * The name of this operator
@@ -85,7 +85,7 @@ export abstract class Operator {
      * Return the math text triggers for this operator.
      * @returns operator triggers.
      */
-    getTokenLists(): string[][] { return this.tokenLists; }
+    getTokens(): string[] { return this.tokens; }
 
     /**
      * Return the rank of this operator.

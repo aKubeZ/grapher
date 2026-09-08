@@ -1,11 +1,11 @@
-import { Operator } from "../operator.js";
+import { Operator } from "./operator.js";
 import { type Value } from "../value.js";
 
 /**
  * An operator with 2 arguments
  */
 export abstract class DoubleOperator extends Operator {
-    protected tokenLists: string[][];
+    protected tokens: string[];
     protected name: string;
     protected inputTypes: [string, string][];
     protected rank: number;
@@ -18,13 +18,13 @@ export abstract class DoubleOperator extends Operator {
      * @param inputTypes The types of inputs thiis operator has.
      * @param operate The operate function (the input type corresponds to `inputTypes[inputType]`)
      */
-    public constructor(name: string, rank: number, tokenLists: string[][], inputTypes: [string, string][],
+    public constructor(name: string, rank: number, tokenLists: string[], inputTypes: [string, string][],
         operate: (args: Value[], inputType: number) => Value
     ) {
         super();
         this.rank = rank;
         this.name = name;
-        this.tokenLists = tokenLists;
+        this.tokens = tokenLists;
         this.inputTypes = inputTypes;
         this.localOperate = operate;
     }

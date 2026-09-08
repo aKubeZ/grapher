@@ -1,4 +1,4 @@
-import type { MathText } from "../math/mathtext.js";
+import type { MathText } from "../math/oldmath/mathtext.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {

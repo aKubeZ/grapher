@@ -53,8 +53,8 @@ body, html {
     }
 }
 
-.mathwrapper .mq-cursor {
-    border-color: #fff !important;
+.entrylist * {
+    user-select: none !important;
 }
 
 .button {

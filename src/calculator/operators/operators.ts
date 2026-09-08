@@ -1,7 +1,7 @@
 import { type Value } from "../value.js";
 import { InOperator } from "./inoperator.js"
 import { NumberValue } from "../values/number.js"
-import { MathText, mathToken } from "../../math/mathtext.js";
+import { MathText, mathToken } from "../../math/oldmath/mathtext.js";
 
 const NumberPair: [string, string] = [NumberValue.type, NumberValue.type];
 
@@ -31,7 +31,7 @@ const MULT_DIV = 42;
 const SUPERSCRIPT = 44;
 
 export const blankOperator =
-    new InOperator("MULTIPLICATION", MULT_DIV, [[""]], [NumberPair], (args: Value[], inputType: number) => {
+    new InOperator("MULTIPLICATION", MULT_DIV, [""], [NumberPair], (args: Value[], inputType: number) => {
         switch (inputType) {
             case 0: {
                 const [a, b] = args as [NumberValue, NumberValue];
@@ -48,7 +48,7 @@ export const blankOperator =
  * A list of standard operators.
  */
 export const operators = [
-    new InOperator("ADDITION", ADD_SUB, [["+"]], [NumberPair], (args: Value[], inputType: number) => {
+    new InOperator("ADDITION", ADD_SUB, ["+"], [NumberPair], (args: Value[], inputType: number) => {
         switch (inputType) {
             case 0: {
                 const [a, b] = args as [NumberValue, NumberValue];
@@ -60,7 +60,7 @@ export const operators = [
             default: throw new Error("Input invalid somehow.");
         }
     }),
-    new InOperator("SUBTRACTION", ADD_SUB, [["-"]], [NumberPair], (args: Value[], inputType: number) => {
+    new InOperator("SUBTRACTION", ADD_SUB, ["-"], [NumberPair], (args: Value[], inputType: number) => {
         switch (inputType) {
             case 0: {
                 const [a, b] = args as [NumberValue, NumberValue];
