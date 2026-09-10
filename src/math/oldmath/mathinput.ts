@@ -320,7 +320,7 @@ export class MathInput {
         let mathString = this.math.toString();
         if (!unfocus) {
             if (this.cursorRange === 0)
-                mathString = mathString.slice(0, cursorPos) + "\\mkern -1mu \\raise{0.1ex}{\\Large \\vert} \\mkern -1mu" + mathString.slice(cursorPos);
+                mathString = mathString.slice(0, cursorPos) + "{\\mkern -1mu \\raise{0.1ex}{\\Large \\vert} \\mkern -1mu}" + mathString.slice(cursorPos);
             else {
                 const cursorEndPos = this.math.stringIndex(this.cursorIndex + this.cursorRange);
                 mathString = mathString.slice(0, cursorPos) + String.raw`\bbox[#870099, 1pt]{` + mathString.slice(cursorPos, cursorEndPos) + '}' + mathString.slice(cursorEndPos);

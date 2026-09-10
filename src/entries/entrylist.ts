@@ -1,4 +1,4 @@
-import type { MathText } from "../math/oldmath/mathtext.js";
+import type { MathToken } from "../math/mathinput.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {
@@ -25,10 +25,10 @@ export class EntryList {
     /**
      * returns all mathtexts of all entries in order.
      */
-    getAllMath(): MathText[] {
-        const mathTexts: MathText[] = [];
+    getAllMath(): MathToken[][] {
+        const mathTexts: MathToken[][] = [];
         for (const entry of this.entries) {
-            mathTexts.push(entry.getMathText());
+            mathTexts.push(entry.getMathTokens());
         }
 
         return mathTexts;
