@@ -1,4 +1,4 @@
-import type { MathToken } from "../math/mathinput.js";
+import type { MathToken } from "./mathinput.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {
@@ -25,7 +25,7 @@ export class EntryList {
     /**
      * returns all mathtexts of all entries in order.
      */
-    getAllMath(): MathToken[][] {
+    public getAllMath(): MathToken[][] {
         const mathTexts: MathToken[][] = [];
         for (const entry of this.entries) {
             mathTexts.push(entry.getMathTokens());
@@ -37,7 +37,7 @@ export class EntryList {
     /**
      * creates a new entry places it after the given one and returns it.
      */
-    createEntryAfter(givenEntry: Entry): Entry {
+    public createEntryAfter(givenEntry: Entry): Entry {
         const newEntryElement = document.createElement("div");
         const newEntry = new Entry(newEntryElement, this);
         this.entries.push(newEntry);
@@ -55,7 +55,7 @@ export class EntryList {
     /**
      * deletes all entries makes an empty one and returns it
      */
-    clearEntries(): Entry {
+    public clearEntries(): Entry {
         this.element.childNodes.forEach((childNode) => {
             childNode.remove();
         });
@@ -67,4 +67,13 @@ export class EntryList {
 
         return newEntry;
     }
+
+    // /**
+    //  * just a debug function that changes from tiem to time
+    //  */
+    // public printAllMath(): void {
+    //     this.entries.forEach((entry: Entry) => {
+    //         console.log(entry.getMa)
+    //     });
+    // }
 }

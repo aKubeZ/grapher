@@ -27,20 +27,23 @@
         <!-- mathjax -->
         <script>
             MathJax = {
+                loader: {
+                    load: ['[tex]/bbox']
+                },
                 tex: {
                     packages: {'[+]': ['bbox']},
                     macros: {
+                        // cursor: "{\\mkern -1mu \\raise{0.1ex}{\\Large \\vert} \\mkern -1mu}",
+                        cursor: "{\\mkern -2.5mu \\raise{0.2ex}{\\vert \\mkern -4.5mu \\vert} \\mkern -2.5mu}",
+                        selection: ["{\\bbox[#870099, 1pt]{ #1 }}", 1], // not used bc it doenst work fro some reason
                         dd: "{\\,\\mathrm{d}}",
-                        dint: ["{\\int_{#1}^{#2}}", 2],
+                        dint: ["{\\int_{#1}^{#2}{#3}\\,\\dd{#4}\\,}", 4],
                         negskip: "\\hskip -2mu",
                         paren: ["{\\negskip \\left( #1 \\right) \\negskip}", 1],
                         brack: ["{\\left[ #1 \\right]}", 1],
                         brace: ["{\\left\\{ #1 \\right\\}}", 1],
                         verts: ["{\\left\\lvert #1 \\right\\rvert}", 1],
                     }
-                },
-                loader: {
-                    load: ['output/svg', '[tex]/bbox']
                 },
                 svg: {
                     displayAlign: "left",
@@ -61,6 +64,6 @@
         </script>
         <!-- <script defer id="MathJax-script" src="./lib/mathjax/tex-chtml.js"></script> -->
         <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js" defer></script>
-        <script defer src="./js/loader.js" type="module"></script>
+        <script defer src="./js/main.js" type="module"></script>
     </body>
 </html>

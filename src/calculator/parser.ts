@@ -1,4 +1,4 @@
-import { MathText, type MathToken } from "../math/oldmath/mathtext.js";
+import { tokensToString, type MathToken } from "../entries/mathinput.js";
 import type { Operator } from "./operators/operator.js";
 import { ArgOperator } from "./operators/argoperator.js";
 import { InOperator } from "./operators/inoperator.js";
@@ -153,7 +153,7 @@ export class Parser {
      * @param math the input MathText object
      * @returns the output Token[]
      */
-    private mathToTokens(math: MathText): Token[] {
+    private mathToTokens(math: MathToken[]): Token[] {
         /**
          * lit a type with a name and arguments
          */
@@ -164,8 +164,8 @@ export class Parser {
 
         const nameArgList: NameArg[] = [];
         let prevMathTokenMerges: boolean = false;
-        for (let i = 0; i < math.getMathTokens().length; i++) {
-            const mathToken = math.getMathTokens()[i] as MathToken;
+        for (let i = 0; i < math.length; i++) {
+            const mathToken = math[i] as MathToken;
             
             if (this.removers.includes(mathToken.name)) {
                 prevMathTokenMerges = false;
@@ -182,12 +182,12 @@ export class Parser {
                 prevMathTokenMerges = false;
                 const lastNameArg = nameArgList[nameArgList.length - 1];
                 if (!lastNameArg) throw new Error("Attempted to append to empty string.");
-                lastNameArg.name += new MathText([mathToken]).toString();
+                lastNameArg.name += tokensToString(mathToken);
             } else {
                 prevMathTokenMerges = mathTokenMerges;
                 nameArgList.push({
                     name: mathToken.name,
-                    args: mathToken.args.map((mathText: MathText) => this.mathToTokens(mathText)),
+                    args: mathToken.args.map((mathTokens: MathToken[]) => this.mathToTokens(mathTokens)),
                 });
             }
         }
@@ -262,8 +262,8 @@ export class Parser {
      * @param inMathText the input MathText object
      * @returns the ParsedMath object
      */
-    public parse(inMathText: MathText): ParsedMath {
-        const tokens = this.mathToTokens(inMathText);
+    public parse(mathTokens: MathToken[]): ParsedMath {
+        const tokens = this.mathToTokens(mathTokens);
         if (tokens.length === 0) throw new Error("Syntax Error: tried to parse an empty string.");
         console.log(tokens);
 

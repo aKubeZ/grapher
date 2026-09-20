@@ -1,7 +1,6 @@
 import { type Value } from "../value.js";
 import { InOperator } from "./inoperator.js"
 import { NumberValue } from "../values/number.js"
-import { MathText, mathToken } from "../../math/oldmath/mathtext.js";
 
 const NumberPair: [string, string] = [NumberValue.type, NumberValue.type];
 
