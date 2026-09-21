@@ -33,7 +33,6 @@ type Cursor = {
  * mathtoken but with extra hidden stuff
  */
 type InputMathToken = MathToken & {
-    size?: number;
     firstEmptyArgument?: number;
     string?: string;
 };
@@ -49,6 +48,11 @@ export function mathToken(name: string, args?: MathToken[][]): MathToken {
 export type MathToken = {
     name: string;
     args: MathToken[][];
+};
+
+export type MathInputShortcut = {
+    trigger: MathToken[],
+    value: MathToken,
 };
 
 /**
@@ -139,6 +143,11 @@ export interface MathInputBase {
      * Equivalent to shift + tab.
      */
     tabCursorLeft(): void;
+
+    /**
+     * Sets the shortcuts that will replace the triggers.
+     */
+    setShortcuts(shortcuts: MathInputShortcut[]): void;
 
     /**
      * Inserts a token at the cursor position.
@@ -338,35 +347,39 @@ export class MathInput implements MathInputBase {
         // mathToken('a'),
         // mathToken('b'),
         // mathToken('c'),
-        mathToken('\\dint ', [
-            [
-                mathToken('-'),
-                mathToken('\\infty '),
-            ],
-            [
-                mathToken('\\infty ')
-            ],
-            [
-                mathToken('e'),
-                mathToken('^', [[
-                    mathToken('-'),
-                    mathToken('x'),
-                    mathToken('^', [[mathToken('2')]]),
-                ]]),
-            ],
-            [
-                mathToken('x'),
-            ]
-        ]),
-        // mathToken('\\dd '),
-        mathToken('='),
-        mathToken('\\sqrt ', [[mathToken('\\pi ')]]),
+        // mathToken('\\dint ', [
+        //     [
+        //         mathToken('-'),
+        //         mathToken('\\infty '),
+        //     ],
+        //     [
+        //         mathToken('\\infty ')
+        //     ],
+        //     [
+        //         mathToken('e'),
+        //         mathToken('^', [[
+        //             mathToken('-'),
+        //             mathToken('x'),
+        //             mathToken('^', [[mathToken('2')]]),
+        //         ]]),
+        //     ],
+        //     [
+        //         mathToken('x'),
+        //     ]
+        // ]),
+        // mathToken('='),
+        // mathToken('\\sqrt ', [[mathToken('\\pi ')]]),
     ];
 
     /**
      * where ctrl c stuffs is stored maybe
      */
     private static clipboard: InputMathToken[] = [];
+
+    /**
+     * list of shortcuts used, defined in entrymath
+     */
+    private shortcuts: MathInputShortcut[] = [];
 
     /**
      * function that you should chagne that is called when the math changes
@@ -396,8 +409,6 @@ export class MathInput implements MathInputBase {
 
         if (token.firstEmptyArgument)
             copiedToken.firstEmptyArgument = token.firstEmptyArgument;
-        if (token.size)
-            copiedToken.size = token.size;
         if (token.string)
             copiedToken.string = token.string;
 
@@ -422,7 +433,6 @@ export class MathInput implements MathInputBase {
      */
     private resetValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
-            delete token.size;
             delete token.string;
             delete token.firstEmptyArgument;
         }
@@ -434,7 +444,6 @@ export class MathInput implements MathInputBase {
      */
     private resetAllValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
-            delete token.size;
             delete token.string;
             delete token.firstEmptyArgument;
 
@@ -495,6 +504,24 @@ export class MathInput implements MathInputBase {
         }
 
         return undefined;
+    }
+
+    private tokensEqual(tokens1: MathToken[], tokens2: MathToken[]): boolean {
+        if (tokens1.length !== tokens2.length) return false;
+        for (let i = 0; i < tokens1.length; i++)
+            if (!this.tokenEqual(tokens1[i]!, tokens2[i]!)) return false;
+        return true;
+    }
+
+    /**
+     * if the tokens are equal
+     */
+    private tokenEqual(token1: MathToken, token2: MathToken): boolean {
+        if (token1.name !== token2.name) return false;
+        if (token1.args.length !== token2.args.length) return false;
+        for (let i = 0; i < token1.args.length; i++)
+            if (!this.tokensEqual(token1.args[i]!, token2.args[i]!)) return false;
+        return true;
     }
 
     // #endregion
@@ -807,6 +834,43 @@ export class MathInput implements MathInputBase {
     // #region editing stuffs
 
     /**
+     * set sthe shortcuts
+     */
+    public setShortcuts(shortcuts: MathInputShortcut[]): void { this.shortcuts = shortcuts; }
+
+    /**
+     * shortcuts yayay
+     */
+    private replaceShortcuts(): void {
+        if (!this.cursor) return;
+        
+        const dereference = this.dereference(this.cursor, true);
+        const cursor = dereference.child.cursor;
+        const tokens = dereference.child.tokens;
+        let foundShortcut: MathInputShortcut | undefined = undefined;
+        for (const shortcut of this.shortcuts) {
+            if (shortcut.trigger.length > cursor.index) continue;
+            const potentialTrigger = tokens.slice(
+                cursor.index - shortcut.trigger.length,
+                cursor.index
+            );
+            if (this.tokensEqual(shortcut.trigger, potentialTrigger)) {
+                foundShortcut = shortcut;
+                break;
+            }
+        }
+
+        if (!foundShortcut) return;
+        tokens.splice(
+            cursor.index - foundShortcut.trigger.length,
+            foundShortcut.trigger.length,
+            foundShortcut.value
+        );
+
+        cursor.index += 1 - foundShortcut.trigger.length;
+    }
+
+    /**
      * inserts a token at a place
      * @param newToken the token to insert, if it has a first empty argument and is cursorSelection != 0,
      * then the things selected go in the new token. The default values for these is for the current cursor
@@ -826,17 +890,28 @@ export class MathInput implements MathInputBase {
         const cursor = dereference.child.cursor;
 
         const firstEmptyArgument = this.getFirstEmptyArgument(token);
-        if (this.cursorSelection !== 0 && firstEmptyArgument !== undefined) {
+        // console.log(firstEmptyArgument);
+        if (firstEmptyArgument !== undefined) {
             const newArgument = childTokens.splice(cursor.index, this.cursorSelection);
             token.args[firstEmptyArgument] = newArgument;
             childTokens.splice(cursor.index, 0, token);
-        } else
+            if (!updatingCursor) {
+                this.cursorSelection = 0;
+                this.cursorDirection = 0;
+                cursor.index++;
+                cursor.arg = { index: firstEmptyArgument, pos: { index: newArgument.length } };
+                this.replaceShortcuts();
+                this.updateMath();
+            }
+        } else {
             childTokens.splice(cursor.index, this.cursorSelection, token);
-        if (!updatingCursor) {
-            this.cursorSelection = 0;
-            this.cursorDirection = 0;
-            cursor.index++;
-            this.updateMath();
+            if (!updatingCursor) {
+                this.cursorSelection = 0;
+                this.cursorDirection = 0;
+                cursor.index++;
+                this.replaceShortcuts();
+                this.updateMath();
+            }
         }
     }
 
@@ -993,7 +1068,7 @@ export class MathInput implements MathInputBase {
         this.copy();
         if (this.cursorSelection) this.deleteLeft();
         else this.clear();
-    }
+    } 
 
     /**
      * ctrl + v the tokens

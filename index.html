@@ -34,12 +34,11 @@
                     packages: {'[+]': ['bbox']},
                     macros: {
                         // cursor: "{\\mkern -1mu \\raise{0.1ex}{\\Large \\vert} \\mkern -1mu}",
-                        cursor: "{\\mkern -2.5mu \\raise{0.2ex}{\\vert \\mkern -4.5mu \\vert} \\mkern -2.5mu}",
+                        cursor: "{\\mkern -2.5mu \\Large{\\vert \\mkern -4.5mu \\vert} \\mkern -2.5mu}",
                         selection: ["{\\bbox[#870099, 1pt]{ #1 }}", 1], // not used bc it doenst work fro some reason
                         dd: "{\\,\\mathrm{d}}",
                         dint: ["{\\int_{#1}^{#2}{#3}\\,\\dd{#4}\\,}", 4],
-                        negskip: "\\hskip -2mu",
-                        paren: ["{\\negskip \\left( #1 \\right) \\negskip}", 1],
+                        paren: ["{\\left( #1 \\right)}", 1],
                         brack: ["{\\left[ #1 \\right]}", 1],
                         brace: ["{\\left\\{ #1 \\right\\}}", 1],
                         verts: ["{\\left\\lvert #1 \\right\\rvert}", 1],
