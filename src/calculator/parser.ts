@@ -1,4 +1,4 @@
-import { tokensToString, type MathToken } from "../entries/mathinput.js";
+import { tokensToString, type MathToken } from "../input/mathinput.js";
 import type { Operator } from "./operators/operator.js";
 import { ArgOperator } from "./operators/argoperator.js";
 import { InOperator } from "./operators/inoperator.js";

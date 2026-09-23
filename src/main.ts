@@ -1,6 +1,6 @@
 import { blankOperator, operators } from "./calculator/operators/operators.js";
 import { Parser } from "./calculator/parser.js";
-import { EntryList } from "./entries/entrylist.js";
+import { EntryList } from "./input/entrylist.js";
 import { Grapher } from "./grapher/grapher.js";
 
 document.getElementById("error")?.remove();
