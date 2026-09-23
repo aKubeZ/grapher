@@ -1,6 +1,7 @@
 import { Entry } from "./entry.js";
-import { MathInput, mathToken, type MathInputBase, type MathToken, type MathInputShortcut } from "./mathinput.js";
-import { updateMath } from "./mathjax.js";
+import { MathInput, type MathInputBase } from "./mathinput.js";
+import { mathToken, type MathToken, type MathInputShortcut, type InputMathToken } from "./math.js";
+import { MathRender } from "./mathrender.js";
 
 /*
 i have a feeling that entry math is going to be reformed soon but that's an
@@ -84,9 +85,12 @@ export class EntryMath {
 
     private element: HTMLDivElement;
     private mathInput: MathInputBase;
+    private mathRender: MathRender;
+
     private constructor(element: HTMLDivElement) {
         this.element = element;
         this.mathInput = new MathInput();
+        this.mathRender = new MathRender(this.element, this.mathInput.getMathTokens());
         this.initEntry();
     }
 
@@ -94,9 +98,8 @@ export class EntryMath {
         this.element.contentEditable = "plaintext-only";
         this.mathInput.setShortcuts(shortcuts);
 
-        this.mathInput.updateMathFunction = (newString: string) => {
-            this.element.textContent = newString;
-            updateMath(this.element);
+        this.mathInput.updateMathFunction = (mathTokens: InputMathToken[]) => {
+            this.mathRender.update();
         };
 
         this.element.addEventListener('keydown', (event) => {

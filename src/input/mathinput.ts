@@ -1,4 +1,4 @@
-// test push
+import type { MathToken, MathInputShortcut, InputMathToken } from "./math.js";
 
 /**
  * a type to store where the cursor is in the math.
@@ -32,29 +32,44 @@ type Cursor = {
 };
 
 /**
- * mathtoken but with extra hidden stuff
+ * Data about what a cursor object is pointing to in a string of math.
  */
-type InputMathToken = MathToken & {
-    firstEmptyArgument?: number;
-    string?: string;
-};
+type Dereference = {
+    /**
+     * Data about the information that only exists if the cursor is nested somwhere
+     */
+    parent?: {
+        /**
+         * The tokens where the token the cursor is in is in.
+         */
+        tokens: InputMathToken[];
 
-export function mathToken(name: string, args?: MathToken[][]): MathToken {
-    if (args) return { name: name, args: args };
-    else return { name: name, args: [] };
-}
+        /**
+         * The token the cursor is in.
+         */
+        token: InputMathToken;
 
-/**
- * a token in math
- */
-export type MathToken = {
-    name: string;
-    args: MathToken[][];
-};
+        /**
+         * The cursor relative to the parent tokens;
+         * has an argument with a cursor with no argument.
+         */
+        cursor: Cursor;
+    };
 
-export type MathInputShortcut = {
-    trigger: MathToken[],
-    value: MathToken,
+    /**
+     * Data that always exists
+     */
+    child: {
+        /**
+         * The exact tokens the cursor is pointing to
+         */
+        tokens: InputMathToken[];
+
+        /**
+         * The cursor relative to the child; has no argument
+         */
+        cursor: Cursor;
+    }
 };
 
 /**
@@ -64,7 +79,7 @@ export interface MathInputBase {
     /**
      * Lambda that gets called when a new math string wants to be used.
      */
-    updateMathFunction: (newString: string) => void;
+    updateMathFunction: (mathTokens: InputMathToken[]) => void;
 
     /**
      * Clears every token in the math input.
@@ -187,12 +202,7 @@ export interface MathInputBase {
      * Pastes the copied tokens.
      */
     paste(): void;
-    
-    /**
-     * Returns the string of the math to be used.
-     */
-    getString(): string;
-    
+
     /**
      * Returns the math tokens.
      */
@@ -205,79 +215,6 @@ export interface MathInputBase {
     updateMath(): void;
 }
 
-export function tokensToString(
-    tokens: InputMathToken | InputMathToken[],
-    emptyArgumentString?: string
-): string {
-    if (!Array.isArray(tokens)) tokens = [tokens];
-    if (tokens.length === 0) return emptyArgumentString || "";
-    let string = "";
-    for (const token of tokens) {
-        let tokenString;
-        if (!token.string) {
-            tokenString = token.name;
-            for (const argument of token.args)
-                tokenString += `{${tokensToString(argument, emptyArgumentString)}}`;
-            token.string = tokenString;
-        } else tokenString = token.string;
-
-        string += tokenString;
-    }
-
-    return string;
-}
-
-async function copyToClipboard(text: string) {
-    const type = "text/plain";
-    const clipboardItemData = {
-        [type]: text,
-    };
-
-    const clipboardItem = new ClipboardItem(clipboardItemData);
-    await navigator.clipboard.write([clipboardItem]);
-}
-
-/**
- * Data about what a cursor object is pointing to in a string of math.
- */
-type Dereference = {
-    /**
-     * Data about the information that only exists if the cursor is nested somwhere
-     */
-    parent?: {
-        /**
-         * The tokens where the token the cursor is in is in.
-         */
-        tokens: InputMathToken[];
-
-        /**
-         * The token the cursor is in.
-         */
-        token: InputMathToken;
-
-        /**
-         * The cursor relative to the parent tokens;
-         * has an argument with a cursor with no argument.
-         */
-        cursor: Cursor;
-    };
-
-    /**
-     * Data that always exists
-     */
-    child: {
-        /**
-         * The exact tokens the cursor is pointing to
-         */
-        tokens: InputMathToken[];
-
-        /**
-         * The cursor relative to the child; has no argument
-         */
-        cursor: Cursor;
-    }
-};
-
 /**
  * a class that handles an input with math and its cursors and selection
  */
@@ -288,11 +225,6 @@ export class MathInput implements MathInputBase {
     private cursor: null | Cursor = null;
 
     /**
-     * the math string
-     */
-    private string: string = "";
-
-    /**
      * (unsigned) how many tokens are selected
      */
     private cursorSelection: number = 0;
@@ -301,28 +233,6 @@ export class MathInput implements MathInputBase {
      * if the cursor selection expands rightward only, 0 if no selection.
      */
     private cursorDirection: number = 0;
-
-    /**
-     * the token that will be used as hte cursor
-     */
-    private cursorToken: InputMathToken = {
-        name: "\\cursor ",
-        args: []
-    };
-
-    /**
-     * the token that will be used for the selection
-     */
-    private cursorSelectionToken: InputMathToken = {
-        name: "\\bbox[#870099, 1pt]",
-        args: [[]],
-        firstEmptyArgument: 0
-    };
-
-    /**
-     * the token that is used to signify an argument thats empty
-     */
-    private emptyArgumentString: string = "\\square";
 
     /**
      * the tokens in the math input
@@ -386,7 +296,7 @@ export class MathInput implements MathInputBase {
     /**
      * function that you should chagne that is called when the math changes
      */
-    public updateMathFunction: (newString: string) => void = () => { };
+    public updateMathFunction: (mathTokens: InputMathToken[]) => void = () => { };
     
     /**
      * create a math input object (theres lwk nothing to do)
@@ -411,8 +321,6 @@ export class MathInput implements MathInputBase {
 
         if (token.firstEmptyArgument)
             copiedToken.firstEmptyArgument = token.firstEmptyArgument;
-        if (token.string)
-            copiedToken.string = token.string;
 
         return copiedToken;
     }
@@ -435,8 +343,8 @@ export class MathInput implements MathInputBase {
      */
     private resetValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
-            delete token.string;
             delete token.firstEmptyArgument;
+            delete token.mathElement;
         }
     }
 
@@ -446,8 +354,8 @@ export class MathInput implements MathInputBase {
      */
     private resetAllValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
-            delete token.string;
             delete token.firstEmptyArgument;
+            delete token.mathElement;
 
             if (!token.args) continue;
             for (const argument of token.args)
@@ -531,9 +439,10 @@ export class MathInput implements MathInputBase {
 
     /**
      * sets the mathTokens to an empty list
+     * pls use this because many things rely on this.mathTokens being the same array
      */
     public clear(): void {
-        this.mathTokens = [];
+        this.mathTokens.splice(0, this.mathTokens.length);
         this.cursor = { index: 0 };
         this.cursorSelection = 0;
         this.cursorDirection = 0;
@@ -567,16 +476,6 @@ export class MathInput implements MathInputBase {
         this.cursorSelection = this.mathTokens.length;
         if (this.cursorDirection === 0) this.cursorDirection = 1;
         this.updateMath();
-    }
-
-    /**
-     * updates the math if it should
-     */
-    public updateMath(): void {
-        const newString = this.getString();
-        if (this.string === newString) return;
-        this.string = newString;
-        this.updateMathFunction(newString);
     }
 
     // #endregion
@@ -892,7 +791,6 @@ export class MathInput implements MathInputBase {
         const cursor = dereference.child.cursor;
 
         const firstEmptyArgument = this.getFirstEmptyArgument(token);
-        // console.log(firstEmptyArgument);
         if (firstEmptyArgument !== undefined) {
             const newArgument = childTokens.splice(cursor.index, this.cursorSelection);
             token.args[firstEmptyArgument] = newArgument;
@@ -1059,7 +957,6 @@ export class MathInput implements MathInputBase {
     public copy(): void {
         if (!this.cursor) return;
         const tokens = this.cursorSelection ? this.getSelection() : this.mathTokens;
-        copyToClipboard(tokensToString(tokens));
         MathInput.clipboard = this.deepCopy(tokens);
     }
 
@@ -1079,30 +976,11 @@ export class MathInput implements MathInputBase {
         this.insertTokens(this.deepCopy(MathInput.clipboard));
     }
 
-    /**
-     * returns a (formatted) string to display of the mathTokens or the tokens if provided.
-     * this seems so unoptimized but whatever but
-     * Also adds cursor and selection tokens
-     * @param tokens the tokens to turn into a string, default to mathTokens
-     * @returns the string
-     */
-    public getString(): string {
-        if (this.mathTokens.length === 0)
-            return `\\[${this.cursor ? tokensToString(this.cursorToken, this.emptyArgumentString) : ''}\\]`;
-        if (!this.cursor)
-            return `\\[${tokensToString(this.mathTokens, this.emptyArgumentString)}\\]`;
-        else if (this.cursorSelection === 0) {
-            const tmpTokens = this.deepCopy();
-            this.insertToken(this.cursorToken, tmpTokens, true);
-            return `\\[${tokensToString(tmpTokens, this.emptyArgumentString)}\\]`;
-        } else {
-            const tmpTokens = this.deepCopy();
-            const selectionToken = this.deepCopyToken(this.cursorSelectionToken);
-            this.insertToken(selectionToken, tmpTokens, true);
-            const string = tokensToString(tmpTokens, this.emptyArgumentString);
-            return `\\[${string}\\]`;
-        }
+    public getMathTokens(): MathToken[] { return this.mathTokens; }
+
+    public updateMath(): void {
+        this.updateMathFunction(this.mathTokens);
     }
 
-    public getMathTokens(): MathToken[] { return this.mathTokens; }
+    //#endregion
 }

@@ -1,6 +1,6 @@
 import { EntryList } from "./entrylist.js";
 import { EntryMath } from "./entrymath.js";
-import type { MathToken } from "./mathinput.js";
+import type { MathToken } from "./math.js";
 
 export class Entry {
     private static entries: Entry[] = [];

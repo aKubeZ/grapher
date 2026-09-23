@@ -1,4 +1,4 @@
-import type { MathToken } from "./mathinput.js";
+import type { MathToken } from "./math.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {
