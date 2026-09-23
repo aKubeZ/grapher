@@ -17,8 +17,8 @@ const parser = new Parser(operators, blankOperator);
 const updateButton = document.getElementById("update") as HTMLButtonElement;
 if (!updateButton) throw new Error("Update button not found.");
 updateButton.addEventListener('mousedown', () => {
-    // const mathTexts = entryList.getAllMath();
-    // for (const math of mathTexts) {
-    //     parser.parse(math);
-    // }
+    const mathTokens = entryList.getAllMath();
+    for (const math of mathTokens) {
+        parser.parse(math);
+    }
 });

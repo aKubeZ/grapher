@@ -121,7 +121,6 @@ export class Parser {
         let foundDecimal = false;
         for (let i = 0; i < input.length; i++) {
             const char = input.charCodeAt(i);
-            console.log(char);
             if (char === 0x2e) { // period
                 if (foundDecimal) return; // is not a number when there are 2 decimals
                 foundDecimal = true;
