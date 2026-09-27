@@ -1,35 +1,4 @@
-import type { MathToken, MathInputShortcut, InputMathToken } from "./math.js";
-
-/**
- * a type to store where the cursor is in the math.
- * Here's how this would probably work:
- * 
- * `index` refers to which token the cursor is located
- *  - If it's 0 then its at the beninging, if it's the length then its at the end
- * 
- * `arg` refers to which argument the cursor is at
- *  - If it's undefined then its at the end of the token (with no argument)
- */
-type Cursor = {
-    /**
-     * which token
-     */
-    index: number;
-    /**
-     * the argument of the token (if it exists)
-     */
-    arg?: {
-        /**
-         * which argument
-         */
-        index: number;
-
-        /**
-         * where in the argument
-         */
-        pos: Cursor;
-    };
-};
+import type { MathToken, MathInputShortcut, InputMathToken, MathCursor } from "./math.js";
 
 /**
  * Data about what a cursor object is pointing to in a string of math.
@@ -53,7 +22,7 @@ type Dereference = {
          * The cursor relative to the parent tokens;
          * has an argument with a cursor with no argument.
          */
-        cursor: Cursor;
+        cursor: MathCursor;
     };
 
     /**
@@ -68,7 +37,7 @@ type Dereference = {
         /**
          * The cursor relative to the child; has no argument
          */
-        cursor: Cursor;
+        cursor: MathCursor;
     }
 };
 
@@ -79,7 +48,12 @@ export interface MathInputBase {
     /**
      * Lambda that gets called when a new math string wants to be used.
      */
-    updateMathFunction: (mathTokens: InputMathToken[]) => void;
+    updateMathFunction: () => void;
+
+    /**
+     * Lambda that gets called when the cursor position has changed.
+     */
+    updateCursorFunction: (cursor: MathCursor | null, selection: number) => void;
 
     /**
      * Clears every token in the math input.
@@ -222,7 +196,7 @@ export class MathInput implements MathInputBase {
     /**
      * the location of the cursor
      */
-    private cursor: null | Cursor = null;
+    private cursor: null | MathCursor = null;
 
     /**
      * (unsigned) how many tokens are selected
@@ -296,7 +270,12 @@ export class MathInput implements MathInputBase {
     /**
      * function that you should chagne that is called when the math changes
      */
-    public updateMathFunction: (mathTokens: InputMathToken[]) => void = () => { };
+    public updateMathFunction: () => void = () => { };
+
+    /**
+     * function that you should chagne that is called when the cursor changes
+     */
+    public updateCursorFunction: (cursor: MathCursor | null, selection: number) => void = () => { };
     
     /**
      * create a math input object (theres lwk nothing to do)
@@ -344,7 +323,7 @@ export class MathInput implements MathInputBase {
     private resetValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
             delete token.firstEmptyArgument;
-            delete token.mathElement;
+            // delete token.elementData;
         }
     }
 
@@ -355,7 +334,7 @@ export class MathInput implements MathInputBase {
     private resetAllValues(tokens = this.mathTokens): void {
         for (const token of tokens) {
             delete token.firstEmptyArgument;
-            delete token.mathElement;
+            // delete token.elementData;
 
             if (!token.args) continue;
             for (const argument of token.args)
@@ -367,7 +346,7 @@ export class MathInput implements MathInputBase {
      * returns exactly what and where the given cursor is pointing at,
      * with the option to reset the values of the tokens it passes by
      */
-    private dereference(cursor: Cursor, resetValues: boolean, tokens = this.mathTokens): Dereference {
+    private dereference(cursor: MathCursor, resetValues: boolean, tokens = this.mathTokens): Dereference {
         if (resetValues) this.resetValues(tokens);
         if (!cursor.arg) return {
             child: {
@@ -435,27 +414,14 @@ export class MathInput implements MathInputBase {
     }
 
     // #endregion
-    // #region implementations
-
-    /**
-     * sets the mathTokens to an empty list
-     * pls use this because many things rely on this.mathTokens being the same array
-     */
-    public clear(): void {
-        this.mathTokens.splice(0, this.mathTokens.length);
-        this.cursor = { index: 0 };
-        this.cursorSelection = 0;
-        this.cursorDirection = 0;
-        this.resetValues();
-        this.updateMath();
-    }
+    // #region cursor stuffs
 
     /**
      * when the user is focused on the div element
      */
     public focus(): void {
         this.cursor = { index: 0 };
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -465,7 +431,7 @@ export class MathInput implements MathInputBase {
         this.cursor = null;
         this.cursorSelection = 0;
         this.cursorDirection = 0;
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -475,11 +441,8 @@ export class MathInput implements MathInputBase {
         this.cursor = { index: 0 };
         this.cursorSelection = this.mathTokens.length;
         if (this.cursorDirection === 0) this.cursorDirection = 1;
-        this.updateMath();
+        this.updateCursor();
     }
-
-    // #endregion
-    // #region cursor stuffs
 
     /**
      * moves the cursor right, and collapses if there is selection.
@@ -512,7 +475,7 @@ export class MathInput implements MathInputBase {
             if (token.args.length !== 0) childCursor.arg = { index: 0, pos: { index: 0 } };
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -549,11 +512,11 @@ export class MathInput implements MathInputBase {
             } else childCursor.index--;
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
-     * move the seleciton right/left, expands if necessary
+     * move the selection right/left, expands if necessary
      */
     public selectionRight(): void {
         if (!this.cursor) return;
@@ -583,7 +546,7 @@ export class MathInput implements MathInputBase {
         } break;
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -618,7 +581,7 @@ export class MathInput implements MathInputBase {
         } break;
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -631,7 +594,7 @@ export class MathInput implements MathInputBase {
         this.cursor = { index: this.mathTokens.length };
         delete this.cursor.arg;
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -644,7 +607,7 @@ export class MathInput implements MathInputBase {
         this.cursor = { index: 0 };
         delete this.cursor.arg;
 
-        this.updateMath();
+        this.updateCursor();
     }
     
     /**
@@ -661,7 +624,7 @@ export class MathInput implements MathInputBase {
             delete this.cursor.arg;
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
     
     /**
@@ -674,7 +637,7 @@ export class MathInput implements MathInputBase {
         this.cursorDirection = -1;
         this.cursor = { index: 0 };
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -700,7 +663,7 @@ export class MathInput implements MathInputBase {
             }
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     /**
@@ -728,11 +691,24 @@ export class MathInput implements MathInputBase {
             }
         }
 
-        this.updateMath();
+        this.updateCursor();
     }
 
     // #endregion
     // #region editing stuffs
+
+    /**
+     * sets the mathTokens to an empty list
+     * pls use this because many things rely on this.mathTokens being the same array
+     */
+    public clear(): void {
+        this.mathTokens.splice(0, this.mathTokens.length);
+        this.cursor = { index: 0 };
+        this.cursorSelection = 0;
+        this.cursorDirection = 0;
+        this.resetValues();
+        this.updateMath();
+    }
 
     /**
      * set sthe shortcuts
@@ -907,48 +883,6 @@ export class MathInput implements MathInputBase {
         }
 
         this.updateMath();
-        /*
-        if (!cursor.arg) {
-            const deletingToken = tokens[cursor.index] as InputMathToken;
-            if (deletingToken && deletingToken.args.length !== 0) {
-                cursor.index++;
-                cursor.arg = { index: 0, pos: { index: 0 } };
-                this.updateMath();
-                return;
-            }
-            
-            if (cursor.index === tokens.length) return (nested ? "flatten" : undefined);
-            tokens.splice(cursor.index, 1);
-
-            this.cursorDirection = 0;
-            this.cursorSelection = 0;
-            this.updateMath();
-
-            return;
-        }
-
-        const cursorToken = tokens[cursor.index - 1] as InputMathToken;
-        const argument = cursorToken.args[cursor.arg.index] as InputMathToken[];
-
-        if (cursor.arg.index < 0 || cursor.arg.index >= cursorToken.args.length) return;
-        if (this.deleteRight(cursor.arg.pos, argument) === "flatten") {
-            const flattenedToken: InputMathToken[] = [];
-            for (const argument of cursorToken.args) flattenedToken.push(...argument);
-            let newIndex = cursor.index - 1;
-            for (let i = 0; i <= cursor.arg.index; i++) {
-                newIndex += (cursorToken.args[i] as InputMathToken[]).length;
-            }
-
-            tokens.splice(cursor.index - 1, 1, ...flattenedToken);
-            delete cursor.arg;
-            cursor.index = newIndex;
-            this.updateMath();
-            // token flattening implies theres no selection so pls work
-            // ys i did copy paste ts
-        }
-
-        this.resetValues(tokens);
-        */
     }
 
     /**
@@ -979,7 +913,12 @@ export class MathInput implements MathInputBase {
     public getMathTokens(): MathToken[] { return this.mathTokens; }
 
     public updateMath(): void {
-        this.updateMathFunction(this.mathTokens);
+        this.updateMathFunction();
+        this.updateCursor();
+    }
+
+    public updateCursor(): void {
+        this.updateCursorFunction(this.cursor, this.cursorSelection);
     }
 
     //#endregion

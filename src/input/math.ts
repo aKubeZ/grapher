@@ -1,4 +1,4 @@
-import type { MathElement } from "./mathrender.js";
+// import type { } from "./render/mathrender.js";
 
 export function mathToken(name: string, args?: MathToken[][]): MathToken {
     if (args) return { name: name, args: args };
@@ -27,6 +27,37 @@ export type MathToken = {
     args: MathToken[][];
 };
 
+/**
+ * a type to store where the cursor is in the math.
+ * Here's how this would probably work:
+ * 
+ * `index` refers to which token the cursor is located
+ *  - If it's 0 then its at the beninging, if it's the length then its at the end
+ * 
+ * `arg` refers to which argument the cursor is at
+ *  - If it's undefined then its at the end of the token (with no argument)
+ */
+export type MathCursor = {
+    /**
+     * which token
+     */
+    index: number;
+    /**
+     * the argument of the token (if it exists)
+     */
+    arg?: {
+        /**
+         * which argument
+         */
+        index: number;
+
+        /**
+         * where in the argument
+         */
+        pos: MathCursor;
+    };
+};
+
 export type MathInputShortcut = {
     trigger: MathToken[],
     value: MathToken,
@@ -39,5 +70,4 @@ export type InputMathToken = {
     name: string;
     args: InputMathToken[][];
     firstEmptyArgument?: number;
-    mathElement?: MathElement;
 };
