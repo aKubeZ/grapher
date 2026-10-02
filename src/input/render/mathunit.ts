@@ -66,6 +66,10 @@ const unitConfigs: { [tokenName: string]: MathUnitConfig } = {
     "+": createUnitConfig({ name: "+", fontStyle: "textfont" }),
     "=": createUnitConfig({ name: "=", fontStyle: "textfont" }),
     "-": createUnitConfig({ name: "-", fontStyle: "textfont" }),
+    "\\infty ": createUnitConfig({ name: "∞", fontStyle: "textfont" }),
+    "\\sqrt ": createUnitConfig({ name: "√", fontStyle: "textfont" }),
+    "\\pi ": createUnitConfig({ name: "π", fontStyle: "textfont" }),
+    "\\dint ": createUnitConfig({ name: "∫", fontStyle: "textfont" }),
 };
 
 /**
@@ -100,15 +104,22 @@ export class MathUnit {
         this.fontStyle = this.unitConfig.fontStyle || baseFontStyle;
         this.element = document.createElement("math-unit");
         this.element.textContent = this.unitConfig.name;
+        for (const argument of this.args) {
+            this.element.appendChild(argument.getElement());
+        }
+
         this.element.classList.add(this.fontStyle); // i like this
-        
-        this.element.style.width = `${this.element.scrollWidth}px`;
-        this.element.style.height = `${this.element.scrollHeight}px`;
+    }
+
+    public updateSize() {
+        for (const argument of this.args) argument.updateSize();
+        // this.element.style.width = `${this.element.offsetWidth}px`;
+        // this.element.style.height = `${this.element.offsetHeight}px`;
     }
 
     public getArgument(index: number) { return this.args[index]; }
     public getElement() { return this.element; }
     public getToken() { return this.token; }
-    public getWidth() { return this.element.scrollWidth; }
-    public getHeight() { return this.element.scrollHeight; }
+    public getWidth() { return this.element.offsetWidth; }
+    public getHeight() { return this.element.offsetHeight; }
 }

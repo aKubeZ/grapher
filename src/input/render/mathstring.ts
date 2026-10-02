@@ -28,14 +28,17 @@ export class MathString {
         }
 
         if (tokens.length === 0) this.element.appendChild(this.blankElement);
-
-        this.element.style.width = `${this.element.scrollWidth}px`;
-        this.element.style.height = `${this.element.scrollHeight}px`;
     }
 
     public getElement() { return this.element; }
     public getWidth() { return this.element.scrollWidth; }
     public getHeight() { return this.element.scrollHeight; }
+
+    public updateSize() {
+        for (const unit of this.units) unit.updateSize();
+        // this.element.style.width = `${this.element.scrollWidth}px`;
+        // this.element.style.height = `${this.element.scrollHeight}px`;
+    }
 
     public setCursor(cursor: null | MathCursor, selection: number) {
         // why does this method have so many comments and the rest like none

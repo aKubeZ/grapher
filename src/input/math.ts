@@ -1,5 +1,3 @@
-// import type { } from "./render/mathrender.js";
-
 export function mathToken(name: string, args?: MathToken[][]): MathToken {
     if (args) return { name: name, args: args };
     else return { name: name, args: [] };

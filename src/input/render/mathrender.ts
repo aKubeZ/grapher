@@ -29,9 +29,6 @@ export class MathRender {
 
         this.parent.appendChild(this.element);
         this.updateTokens();
-
-        this.element.style.width = `${this.element.scrollWidth}px`;
-        this.element.style.height = `${this.element.scrollHeight}px`;
     }
 
     public setCursor(cursor: null | MathCursor, selection: number): void {
@@ -39,6 +36,12 @@ export class MathRender {
     }
 
     public getElement() { return this.element; }
+
+    public updateSize() {
+        this.mathString.updateSize();
+        // this.element.style.width = `${this.element.scrollHeight}px`;
+        // this.element.style.height = `${this.element.scrollHeight}px`;
+    }
 
     /**
      * updates the math (and cursor with it) by
@@ -48,5 +51,6 @@ export class MathRender {
         this.mathString?.getElement().remove();
         this.mathString = new MathString("math-render", this.tokens, this.fontSize, this.fontStyle);
         this.element.appendChild(this.mathString.getElement());
+        this.updateSize();
     }
 }

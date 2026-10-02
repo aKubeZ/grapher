@@ -132,8 +132,16 @@ body, html {
 
 /* #region math stuff */
 
-math-render, math-token, math-argument, math-cursor, math-selection, math-unit-placeholder {
+/* math-render, math-unit, math-token, math-argument, math-cursor, math-selection, math-unit-placeholder {
     position: absolute;
+    display: block;
+} */
+math-render, math-argument {
+    position: absolute;
+}
+
+math-unit, math-cursor, math-unit-placeholder {
+    position: relative;
 }
 
 math-unit-placeholder::after {
@@ -141,8 +149,8 @@ math-unit-placeholder::after {
 }
 
 math-container, math-selection {
-    /* position: relative; */
     width: 100%;
+    display: block;
     overflow-x: scroll;
     overflow-y: auto;
 }

@@ -1,4 +1,4 @@
-import type { MathToken, MathInputShortcut, InputMathToken, MathCursor } from "./math.js";
+import { type MathToken, type MathInputShortcut, type InputMathToken, type MathCursor, mathToken } from "./math.js";
 
 /**
  * Data about what a cursor object is pointing to in a string of math.
@@ -233,28 +233,28 @@ export class MathInput implements MathInputBase {
         // mathToken('a'),
         // mathToken('b'),
         // mathToken('c'),
-        // mathToken('\\dint ', [
-        //     [
-        //         mathToken('-'),
-        //         mathToken('\\infty '),
-        //     ],
-        //     [
-        //         mathToken('\\infty ')
-        //     ],
-        //     [
-        //         mathToken('e'),
-        //         mathToken('^', [[
-        //             mathToken('-'),
-        //             mathToken('x'),
-        //             mathToken('^', [[mathToken('2')]]),
-        //         ]]),
-        //     ],
-        //     [
-        //         mathToken('x'),
-        //     ]
-        // ]),
-        // mathToken('='),
-        // mathToken('\\sqrt ', [[mathToken('\\pi ')]]),
+        mathToken('\\dint ', [
+            [
+                mathToken('-'),
+                mathToken('\\infty '),
+            ],
+            [
+                mathToken('\\infty ')
+            ],
+            [
+                mathToken('e'),
+                mathToken('^', [[
+                    mathToken('-'),
+                    mathToken('x'),
+                    mathToken('^', [[mathToken('2')]]),
+                ]]),
+            ],
+            [
+                mathToken('x'),
+            ]
+        ]),
+        mathToken('='),
+        mathToken('\\sqrt ', [[mathToken('\\pi ')]]),
     ];
 
     /**
