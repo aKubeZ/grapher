@@ -69,7 +69,15 @@ const unitConfigs: { [tokenName: string]: MathUnitConfig } = {
     "\\infty ": createUnitConfig({ name: "∞", fontStyle: "textfont" }),
     "\\sqrt ": createUnitConfig({ name: "√", fontStyle: "textfont" }),
     "\\pi ": createUnitConfig({ name: "π", fontStyle: "textfont" }),
-    "\\dint ": createUnitConfig({ name: "∫", fontStyle: "textfont" }),
+    "\\dint ": createUnitConfig({
+        name: "∫", fontStyle: "textfont",
+        fontScale: 2,
+        args: [
+            { offset: { x: 10, y: 0 }, offsetAnchor: "left", fontStyle: "mathfont", fontScale: 0.5 },
+            { offset: { x: 10, y: 10 }, offsetAnchor: "left", fontStyle: "mathfont", fontScale: 0.5 },
+            { offset: { x: 10, y: 5 }, offsetAnchor: "left", fontStyle: "mathfont", fontScale: 1 },
+        ]
+    }),
 };
 
 /**
@@ -104,11 +112,10 @@ export class MathUnit {
         this.fontStyle = this.unitConfig.fontStyle || baseFontStyle;
         this.element = document.createElement("math-unit");
         this.element.textContent = this.unitConfig.name;
-        for (const argument of this.args) {
-            this.element.appendChild(argument.getElement());
-        }
+        for (const argument of this.args) this.element.appendChild(argument.getElement());
 
         this.element.classList.add(this.fontStyle); // i like this
+        this.element.style.fontSize = `${this.unitConfig.fontScale * baseFontSize}px`;
     }
 
     public updateSize() {
