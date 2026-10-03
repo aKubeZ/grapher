@@ -1,4 +1,3 @@
-import type { MathToken } from "./mathinput.js";
 import { Entry } from "./entry.js";
 
 export class EntryList {
@@ -20,18 +19,6 @@ export class EntryList {
                 this.entries.push(new Entry(entryElement as HTMLElement, this));
             });
         }
-    }
-
-    /**
-     * returns all mathtexts of all entries in order.
-     */
-    public getAllMath(): MathToken[][] {
-        const mathTexts: MathToken[][] = [];
-        for (const entry of this.entries) {
-            mathTexts.push(entry.getMathTokens());
-        }
-
-        return mathTexts;
     }
 
     /**

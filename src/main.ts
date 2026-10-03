@@ -1,5 +1,5 @@
 import { blankOperator, operators } from "./calculator/operators/operators.js";
-import { Parser } from "./calculator/parser.js";
+// import { Parser } from "./calculator/parser.js";
 import { EntryList } from "./input/entrylist.js";
 import { Grapher } from "./grapher/grapher.js";
 
@@ -12,7 +12,7 @@ const canvas = document.getElementById("graph");
 if (!canvas) throw new Error("Canvas element not found.");
 const graph = new Grapher(canvas);
 
-const parser = new Parser(operators, blankOperator);
+// const parser = new Parser(operators, blankOperator);
 
 const updateButton = document.getElementById("update") as HTMLButtonElement;
 if (!updateButton) throw new Error("Update button not found.");

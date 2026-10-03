@@ -1,6 +1,4 @@
 import { EntryList } from "./entrylist.js";
-import { EntryMath } from "./entrymath.js";
-import type { MathToken } from "./mathinput.js";
 
 export class Entry {
     private static entries: Entry[] = [];
@@ -22,21 +20,16 @@ export class Entry {
 
     private element: HTMLDivElement;
     private entryList: EntryList | undefined;
-    private math: EntryMath;
     constructor(element: HTMLElement, entryList: EntryList | undefined) {
         if (!element) throw new Error("Entry not found");
         if (element.nodeName !== "DIV") throw new Error("Entry element not div");
         
         this.element = element as HTMLDivElement;
-        this.math =  EntryMath.newEntryMath(this.element);
         this.entryList = entryList;
 
         this.element.classList.add("entry");
         Entry.entries.push(this);
-    }
-
-    public getMathTokens(): MathToken[] {
-        return this.math.getMathTokens();
+        
     }
 
     delete(): void {
